@@ -1,424 +1,774 @@
 (function () {
   "use strict";
+  try { sessionStorage.setItem("cherubim_demo", "1"); } catch (e) {}
 
-  // ---- gate ----
-  try {
-    if (sessionStorage.getItem("cherubim_demo") !== "1") {
-      sessionStorage.setItem("cherubim_demo", "1");
-    }
-  } catch (e) {}
-
-  // ---------------- DATA (simulated client: Northwind Capital) ----------------
-  var ORG = "Northwind Capital";
-
-  var stats = { posture: 72, findings: 38, critical: 4, surface: 1284, paths: 6, humanRisk: 18 };
-
-  var surface = [
-    ["api-gw.northwind.io", "External API", "Cloud / AWS", "Critical", "Exposed"],
-    ["vpn.northwind.io", "Remote access", "Network edge", "High", "Monitored"],
-    ["10.4.0.0/16", "Internal subnet", "Network", "Medium", "Segmented"],
-    ["nw-corp.local", "Active Directory", "Identity", "Critical", "Monitored"],
-    ["payments.northwind.io", "Web app", "Application", "Critical", "Exposed"],
-    ["s3://nw-statements", "Object store", "Cloud / AWS", "High", "Misconfig"],
-    ["nw-prod-eks", "Kubernetes", "Cloud / AWS", "High", "Exposed"],
-    ["WIFI-NW-CORP", "Wireless", "Network", "Medium", "In range"],
-    ["okta.northwind.io", "Identity provider", "Identity", "Critical", "Monitored"],
-    ["jenkins.int.northwind.io", "CI / CD", "Supply chain", "High", "Exposed"]
-  ];
-
-  var campaigns = [
-    ["CMP-2041", "Full stack assumed breach", "Network, Cloud, Identity", "Completed", "100%", "4 critical"],
-    ["CMP-2039", "External perimeter", "Web, API", "Completed", "100%", "9 high"],
-    ["CMP-2044", "Omnichannel social engineering", "People", "Running", "63%", "live"],
-    ["CMP-2037", "Cloud and Kubernetes", "AWS, EKS", "Completed", "100%", "6 high"],
-    ["CMP-2031", "Active Directory to domain admin", "Identity", "Completed", "100%", "1 critical"]
-  ];
-
-  var findings = [
-    { id: "F-3301", t: "Unauthenticated path to domain administrator", sev: "Critical", surf: "Identity", att: "T1556 / T1078",
-      d: "An exposed Jenkins instance leaked CI credentials reused by a service account with unconstrained delegation, allowing escalation to Domain Admin.",
-      poc: "$ curl -s https://jenkins.int.northwind.io/script\n<span class='c'># reused service credential</span>\n$ impacket-getST -spn HTTP/dc1 -impersonate Administrator \\\n   nw-corp.local/svc_ci:<span class='g'>[recovered]</span>\n<span class='ok'>[+] Domain Admin TGT obtained. Validated in sandbox.</span>",
-      fix: "Rotate svc_ci, remove unconstrained delegation, isolate Jenkins behind SSO and network policy." },
-    { id: "F-3302", t: "Public object store exposes customer statements", sev: "Critical", surf: "Cloud", att: "T1530",
-      d: "Bucket policy on s3://nw-statements allows anonymous list and get. 41,200 PDF statements containing PII were enumerable.",
-      poc: "$ aws s3 ls s3://nw-statements --no-sign-request\n2026-04 statement_8841.pdf ... <span class='g'>(41,200 objects)</span>\n<span class='ok'>[+] Read access proven on sampled objects. Not exfiltrated.</span>",
-      fix: "Apply Block Public Access, scope bucket policy, enable access logging and alerting." },
-    { id: "F-3303", t: "Payments app business logic bypass", sev: "Critical", surf: "Application", att: "T1190",
-      d: "Negative quantity in the settlement endpoint inverts the ledger entry, allowing balance manipulation without authentication checks on the second step.",
-      poc: "POST /api/v2/settle\n{ \"amount\": <span class='g'>-50000</span>, \"acct\": \"...\" }\n<span class='ok'>[+] Ledger delta applied in sandbox tenant. Reproduced 3x.</span>",
-      fix: "Server side invariant checks, signed multi step transactions, fuzz the settlement state machine." },
-    { id: "F-3304", t: "EKS pod can reach node IMDS", sev: "High", surf: "Cloud", att: "T1552.005",
-      d: "A workload pod can reach the instance metadata service and assume the node role, broadening blast radius across the cluster.",
-      poc: "$ kubectl exec web-7f -- curl 169.254.169.254/latest/...\n<span class='g'>nw-eks-node-role</span>\n<span class='ok'>[+] Node role creds retrieved in sandbox.</span>",
-      fix: "Enforce IMDSv2 hop limit, apply network policy, use IRSA scoped roles per workload." },
-    { id: "F-3305", t: "VPN allows password spray without lockout", sev: "High", surf: "Network", att: "T1110.003",
-      d: "No throttling on the VPN portal enabled a low and slow spray that recovered two valid credentials.",
-      poc: "<span class='c'># 1 attempt / account / 30 min</span>\n<span class='ok'>[+] 2 valid credentials recovered. MFA held and stopped entry.</span>",
-      fix: "Rate limit, lockout policy, alert on spray patterns, enforce phishing resistant MFA." },
-    { id: "F-3306", t: "Wireless guest network reaches corp VLAN", sev: "High", surf: "Network", att: "T1021",
-      d: "Guest SSID is not isolated from the corporate VLAN, exposing internal services from the lobby.",
-      poc: "<span class='ok'>[+] Reached 10.4.12.0/24 from guest SSID. Path proven.</span>",
-      fix: "Enforce VLAN isolation and client isolation on guest SSID, restrict inter VLAN routing." }
-  ];
-
-  var pathNodes = [
-    ["01", "Edge", "Exposed Jenkins on supply chain surface", "Initial Access  T1190"],
-    ["02", "Foothold", "Leaked CI credential recovered from build logs", "Credential Access  T1552"],
-    ["03", "Pivot", "Lateral movement into internal identity subnet", "Lateral Movement  T1021"],
-    ["04", "Escalate", "Unconstrained delegation abused for Domain Admin", "Privilege Escalation  T1078"],
-    ["05", "Impact", "Reached customer statement store, exfiltration proven then stopped", "Impact  T1530"]
-  ];
-
-  var social = [
-    ["Phishing email", 412, "31%", "9%", "Reported in 6 min"],
-    ["SMS / smishing", 180, "24%", "n/a", "Low report rate"],
-    ["WhatsApp pretext", 64, "19%", "n/a", "Moved off channel"],
-    ["Voice clone (vishing)", 22, "41%", "n/a", "Process unlocked"],
-    ["Live deepfake on Teams", 8, "50%", "n/a", "Executive impersonation held by 4"],
-    ["Slack follow up", 36, "28%", "n/a", "Trusted internal tool"]
-  ];
-
-  var frameworks = [
-    ["NIST CSF 2.0", 86, "good"], ["Cybersecurity Act", 79, "warn"], ["CSA Cyber Trust", 78, "warn"],
-    ["CSA Cyber Essentials", 92, "good"], ["ISO/IEC 27001", 83, "warn"], ["MAS TRM", 74, "warn"],
-    ["PDPA", 88, "good"], ["MITRE ATT&CK", 81, "warn"], ["CIS Controls", 69, "bad"]
-  ];
-
-  var activity = [
-    "agent.recon mapped 1,284 assets across 7 surfaces",
-    "agent.web confirmed business logic flaw on payments.northwind.io",
-    "validator reproduced F-3303 in isolated sandbox (3x)",
-    "agent.identity recovered service credential from CI logs",
-    "agent.cloud assumed node role via IMDS on nw-prod-eks",
-    "narrative.engine escalated vishing scenario on engagement",
-    "agent.network proven guest VLAN reaches corp subnet",
-    "compliance.map tagged F-3301 to NIST PR.AC, Cyber Trust",
-    "validator marked F-3306 PROVEN, evidence pack updated",
-    "agent.identity reached Domain Admin, campaign stopped safely"
-  ];
-
-  // ---------------- HELPERS ----------------
   var $ = function (s, r) { return (r || document).querySelector(s); };
-  var sevClass = { Critical: "sev-crit", High: "sev-high", Medium: "sev-med", Low: "sev-low" };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var esc = function (s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); };
 
-  function toast(title, msg) {
-    var w = $("#toasts");
-    var t = document.createElement("div");
-    t.className = "toast";
-    t.innerHTML = "<b>" + title + "</b><br>" + msg;
-    w.appendChild(t);
-    setTimeout(function () { t.style.transition = "opacity .4s"; t.style.opacity = "0";
-      setTimeout(function () { t.remove(); }, 400); }, 4200);
-  }
+  /* ============================ STATE / DATA ============================ */
+  var ORG = "Northwind Capital";
+  var SEVC = { Critical: "sev-crit", High: "sev-high", Medium: "sev-med", Low: "sev-low" };
+  var COL = { Critical: "#E0795A", High: "#E8A878", Medium: "#D6B066", Low: "#7FA8D8", ok: "#3FB984", mut: "#5C708F" };
 
-  function rows(arr, cls) {
-    return arr.map(function (r) {
-      return "<tr" + (cls ? " class='" + cls + "'" : "") + ">" +
-        r.map(function (c) { return "<td>" + c + "</td>"; }).join("") + "</tr>";
-    }).join("");
-  }
+  var state = {
+    posture: 72,
+    postureSeries: [58, 60, 59, 63, 66, 65, 68, 70, 69, 72],
+    findingsSeries: [51, 49, 53, 47, 44, 46, 42, 40, 39, 38],
+    surfaces: [
+      { n: "Network", s: 74, assets: 412 }, { n: "Cloud / K8s", s: 61, assets: 286 },
+      { n: "Identity / AD", s: 58, assets: 144 }, { n: "Application / API", s: 67, assets: 198 },
+      { n: "People", s: 70, assets: 722 }, { n: "Supply chain", s: 55, assets: 64 }
+    ],
+    attck: [
+      ["Initial Access", 9], ["Execution", 6], ["Persistence", 4], ["Priv Esc", 7],
+      ["Defense Evasion", 5], ["Cred Access", 8], ["Discovery", 11], ["Lateral", 6],
+      ["Collection", 3], ["Exfiltration", 2], ["Impact", 2]
+    ],
+    assets: [
+      ["api-gw.northwind.io", "External API", "Application / API", "Critical", "Internet facing", "Platform"],
+      ["vpn.northwind.io", "Remote access", "Network", "High", "Internet facing", "Network Eng"],
+      ["10.4.0.0/16", "Internal subnet", "Network", "Medium", "Internal", "Network Eng"],
+      ["nw-corp.local", "Active Directory", "Identity / AD", "Critical", "Internal", "IT"],
+      ["payments.northwind.io", "Web app", "Application / API", "Critical", "Internet facing", "Payments"],
+      ["s3://nw-statements", "Object store", "Cloud / K8s", "High", "Misconfigured", "Cloud"],
+      ["nw-prod-eks", "Kubernetes", "Cloud / K8s", "High", "Internet facing", "Cloud"],
+      ["WIFI-NW-CORP", "Wireless", "Network", "Medium", "RF range", "Facilities"],
+      ["okta.northwind.io", "Identity provider", "Identity / AD", "Critical", "Internet facing", "IT"],
+      ["jenkins.int.northwind.io", "CI / CD", "Supply chain", "High", "Internet facing", "Platform"],
+      ["nw-azure-prod", "Azure subscription", "Cloud / K8s", "High", "Internal", "Cloud"],
+      ["mssql-fin-01", "Database", "Application / API", "Critical", "Internal", "Finance IT"]
+    ],
+    findings: [],
+    campaigns: [],
+    connectors: [
+      ["Amazon Web Services", "Cloud", "Connected", "12 accounts", "2 min ago"],
+      ["Microsoft Azure", "Cloud", "Connected", "4 subscriptions", "3 min ago"],
+      ["Google Cloud", "Cloud", "Connected", "2 projects", "5 min ago"],
+      ["Active Directory", "Identity", "Connected", "3 forests", "1 min ago"],
+      ["Okta", "Identity", "Connected", "8,400 users", "1 min ago"],
+      ["Microsoft Entra ID", "Identity", "Connected", "8,400 users", "4 min ago"],
+      ["CrowdStrike Falcon", "Endpoint", "Connected", "6,210 hosts", "live"],
+      ["Palo Alto firewalls", "Network", "Connected", "14 devices", "2 min ago"],
+      ["Cisco switching", "Network", "Connected", "92 devices", "6 min ago"],
+      ["GitHub Enterprise", "Code / CI", "Connected", "340 repos", "8 min ago"],
+      ["Jenkins", "Code / CI", "Connected", "61 pipelines", "9 min ago"],
+      ["Slack", "Messaging", "Connected", "Enterprise grid", "live"],
+      ["Microsoft Teams + M365", "Messaging", "Connected", "8,400 mailboxes", "live"],
+      ["Twilio + WhatsApp Business", "Messaging", "Connected", "2 numbers", "live"]
+    ],
+    social: [
+      ["Phishing email", 412, 31, 9, "Reported in 6 min median"],
+      ["SMS / smishing", 180, 24, 6, "Low report rate"],
+      ["WhatsApp pretext", 64, 19, 3, "Moved off corporate channel"],
+      ["Voice clone (vishing)", 22, 41, 0, "Helpdesk process unlocked"],
+      ["Live deepfake on Teams", 8, 50, 0, "4 of 8 challenged identity"],
+      ["Slack follow up", 36, 28, 5, "Trusted internal tooling"]
+    ],
+    frameworks: [
+      ["NIST CSF 2.0", 86, "good"], ["Singapore Cybersecurity Act", 79, "warn"],
+      ["CSA Cyber Trust mark", 78, "warn"], ["CSA Cyber Essentials", 92, "good"],
+      ["ISO/IEC 27001:2022", 83, "warn"], ["MAS TRM", 74, "warn"],
+      ["PDPA", 88, "good"], ["MITRE ATT&CK", 81, "warn"], ["CIS Controls v8", 69, "bad"]
+    ]
+  };
 
-  // ---------------- RENDER VIEWS ----------------
-  function render() {
-    // Overview
-    $("#v-overview").innerHTML =
-      '<div class="view-head"><span class="eyebrow">Command center</span>' +
-      '<h1>Security posture at a glance</h1><p>Live state of every engagement across ' + ORG + "'s connected stack.</p></div>" +
-      '<div class="stat-row">' +
-        statCard("Posture score", stats.posture + " / 100", "up", "+6 this quarter") +
-        statCard("Open findings", stats.findings, "down", "12 remediated this month") +
-        statCard("Critical", stats.critical, "down", "all with proof attached") +
-        statCard("Assets in scope", stats.surface.toLocaleString(), "up", "7 surfaces connected") +
-      '</div>' +
-      '<div class="grid-2">' +
-        '<div class="card-p"><h3>Live agent activity</h3><p class="sub">Autonomous agents working across the connected stack</p><div class="ticker" id="ticker"></div></div>' +
-        '<div class="card-p"><h3>Posture by surface</h3><p class="sub">Validated resilience, higher is better</p>' +
-          surfBar("Network", 74) + surfBar("Cloud / Kubernetes", 61) + surfBar("Identity / AD", 58) +
-          surfBar("Application / API", 67) + surfBar("People", 70) + surfBar("Supply chain", 55) +
-        '</div></div>' +
-      '<div class="card-p span2" style="margin-top:16px"><h3>Latest critical findings</h3><p class="sub">Click a row for evidence and remediation</p>' +
-        '<table class="tbl"><thead><tr><th>ID</th><th>Finding</th><th>Surface</th><th>ATT&CK</th><th>Severity</th><th>Status</th></tr></thead><tbody id="ovFind"></tbody></table></div>';
+  var seedFindings = [
+    { id: "F-3301", t: "Unauthenticated path to Domain Administrator", sev: "Critical", surf: "Identity / AD", att: "T1556 / T1078", cvss: 9.8, cmp: "CMP-2041",
+      d: "An internet exposed Jenkins instance leaked CI credentials reused by a service account with unconstrained Kerberos delegation, giving a direct path to Domain Admin.",
+      poc: "$ curl -s https://jenkins.int.northwind.io/script\n<span class='c'># reused service credential recovered</span>\n$ impacket-getST -spn HTTP/dc1 -impersonate Administrator \\\n  nw-corp.local/svc_ci:<span class='gd'>[recovered]</span>\n<span class='ok'>[+] Domain Admin TGT obtained. Reproduced 3x in sandbox.</span>",
+      fix: "Rotate svc_ci, remove unconstrained delegation, isolate Jenkins behind SSO and egress policy.",
+      fw: ["NIST PR.AC-1", "Cyber Trust A.5", "ISO A.5.15", "ATT&CK T1078"] },
+    { id: "F-3302", t: "Public object store exposes customer statements", sev: "Critical", surf: "Cloud / K8s", att: "T1530", cvss: 9.1, cmp: "CMP-2037",
+      d: "Bucket policy on s3://nw-statements allows anonymous list and get. 41,200 PDF statements containing PII were enumerable.",
+      poc: "$ aws s3 ls s3://nw-statements --no-sign-request\n2026-04 statement_8841.pdf ... <span class='gd'>(41,200 objects)</span>\n<span class='ok'>[+] Read proven on sampled objects. Not exfiltrated.</span>",
+      fix: "Enable Block Public Access, scope bucket policy, turn on access logging and alerting.",
+      fw: ["NIST PR.DS-1", "PDPA", "MAS TRM 11", "ATT&CK T1530"] },
+    { id: "F-3303", t: "Payments settlement business logic bypass", sev: "Critical", surf: "Application / API", att: "T1190", cvss: 8.9, cmp: "CMP-2039",
+      d: "A negative quantity in the settlement endpoint inverts the ledger entry, allowing balance manipulation with no second step authorisation.",
+      poc: "POST /api/v2/settle\n{ \"amount\": <span class='gd'>-50000</span>, \"acct\": \"...\" }\n<span class='ok'>[+] Ledger delta applied in sandbox tenant. Reproduced 3x.</span>",
+      fix: "Server side invariants, signed multi step transactions, fuzz the settlement state machine.",
+      fw: ["NIST PR.IP", "ISO A.8.26", "CIS 16", "ATT&CK T1190"] },
+    { id: "F-3304", t: "EKS workload pod can reach node IMDS", sev: "High", surf: "Cloud / K8s", att: "T1552.005", cvss: 7.7, cmp: "CMP-2037",
+      d: "A workload pod can reach the instance metadata service and assume the node role, broadening blast radius across the cluster.",
+      poc: "$ kubectl exec web-7f -- curl 169.254.169.254/latest/...\n<span class='gd'>nw-eks-node-role</span>\n<span class='ok'>[+] Node role creds retrieved in sandbox.</span>",
+      fix: "Enforce IMDSv2 hop limit, apply NetworkPolicy, use IRSA roles scoped per workload.",
+      fw: ["NIST PR.AC-4", "Cyber Trust A.7", "ATT&CK T1552"] },
+    { id: "F-3305", t: "VPN portal allows password spray without lockout", sev: "High", surf: "Network", att: "T1110.003", cvss: 7.2, cmp: "CMP-2041",
+      d: "No throttling on the VPN portal enabled a low and slow spray that recovered two valid credentials. MFA held and stopped entry.",
+      poc: "<span class='c'># 1 attempt / account / 30 min</span>\n<span class='ok'>[+] 2 valid credentials recovered. Entry blocked by MFA.</span>",
+      fix: "Rate limiting, lockout policy, spray detection, phishing resistant MFA.",
+      fw: ["NIST PR.AC-7", "MAS TRM 9", "CIS 6", "ATT&CK T1110"] },
+    { id: "F-3306", t: "Guest wireless reaches corporate VLAN", sev: "High", surf: "Network", att: "T1021", cvss: 6.8, cmp: "CMP-2041",
+      d: "Guest SSID is not isolated from the corporate VLAN, exposing internal services from the building lobby.",
+      poc: "<span class='ok'>[+] Reached 10.4.12.0/24 from guest SSID. Path proven.</span>",
+      fix: "Enforce VLAN and client isolation on guest SSID, restrict inter VLAN routing.",
+      fw: ["NIST PR.AC-5", "ISO A.8.20", "ATT&CK T1021"] },
+    { id: "F-3307", t: "Stale admin accounts without MFA in Okta", sev: "Medium", surf: "Identity / AD", att: "T1078.004", cvss: 5.9, cmp: "CMP-2031",
+      d: "Three privileged Okta accounts have no MFA enrolment and have not rotated credentials in over a year.",
+      poc: "<span class='ok'>[+] 3 privileged accounts flagged, no second factor.</span>",
+      fix: "Enforce MFA for all admins, expire stale sessions, review privileged role assignment.",
+      fw: ["NIST PR.AC-7", "Cyber Essentials", "ATT&CK T1078"] }
+  ];
+  state.findings = seedFindings.slice();
 
-    var ov = findings.slice(0, 4).map(function (f) {
-      return "<tr class='clk' data-f='" + f.id + "'><td>" + f.id + "</td><td>" + f.t +
-        "</td><td>" + f.surf + "</td><td><span class='att' style='font-family:JetBrains Mono;font-size:11px;color:var(--gold)'>" + f.att +
-        "</span></td><td><span class='tag " + sevClass[f.sev] + "'>" + f.sev +
-        "</span></td><td class='st-ok'>Proven</td></tr>";
-    }).join("");
-    $("#ovFind").innerHTML = ov;
-
-    // Attack surface
-    $("#v-surface").innerHTML =
-      '<div class="view-head"><span class="eyebrow">Attack surface</span><h1>Connected stack inventory</h1>' +
-      '<p>Everything Cherubim discovered when ' + ORG + ' connected its network and stack.</p></div>' +
-      '<div class="stat-row">' + statCard("Assets", "1,284", "", "auto discovered") +
-        statCard("Internet facing", "97", "", "continuously monitored") +
-        statCard("Misconfigured", "23", "down", "tracked to owners") +
-        statCard("Surfaces", "7", "", "network to supply chain") + '</div>' +
-      '<div class="card-p"><h3>Discovered assets</h3><p class="sub">A representative slice of the live inventory</p>' +
-      '<table class="tbl"><thead><tr><th>Asset</th><th>Type</th><th>Surface</th><th>Exposure</th><th>State</th></tr></thead><tbody>' +
-      rows(surface) + '</tbody></table></div>';
-
-    // Campaigns
-    $("#v-campaigns").innerHTML =
-      '<div class="view-head"><span class="eyebrow">Campaigns</span><h1>Engagements</h1>' +
-      '<p>Autonomous campaigns across the stack and the human layer. Launch a new one any time.</p></div>' +
-      '<div class="card-p"><h3>All campaigns</h3><p class="sub">' + ORG + ' connected environment</p>' +
-      '<table class="tbl"><thead><tr><th>ID</th><th>Campaign</th><th>Scope</th><th>Status</th><th>Progress</th><th>Result</th></tr></thead><tbody id="cmpBody">' +
-      campaigns.map(function (c) {
-        var st = c[3] === "Running" ? "st-run" : "st-ok";
-        return "<tr><td>" + c[0] + "</td><td>" + c[1] + "</td><td>" + c[2] +
-          "</td><td class='" + st + "'>" + c[3] + "</td><td>" + c[4] + "</td><td>" + c[5] + "</td></tr>";
-      }).join("") + '</tbody></table></div>';
-
-    // Attack paths
-    $("#v-paths").innerHTML =
-      '<div class="view-head"><span class="eyebrow">Attack paths</span><h1>Proven attack path</h1>' +
-      '<p>One continuous kill chain from an exposed edge to customer data. Reproduced and validated, not theoretical.</p></div>' +
-      '<div class="card-p"><h3>Edge to impact</h3><p class="sub">CMP-2041  Full stack assumed breach  Reproduced 3 times</p><div class="path">' +
-      pathNodes.map(function (n) {
-        return '<div class="node"><div class="ring">' + n[0] + '</div><div><h4>' + n[1] + " &middot; " + n[2] +
-          '</h4><p>' + n[3] + '</p></div><div class="att">PROVEN</div></div>';
-      }).join("") + '</div></div>';
-
-    // Findings
-    $("#v-findings").innerHTML =
-      '<div class="view-head"><span class="eyebrow">Findings</span><h1>Validated findings</h1>' +
-      '<p>Every finding here was reproduced by a deterministic validator. No proof, no finding.</p></div>' +
-      '<div class="chips" id="sevChips">' +
-        ['All', 'Critical', 'High'].map(function (s, i) {
-          return "<span class='chip" + (i === 0 ? " on" : "") + "' data-s='" + s + "'>" + s + "</span>";
-        }).join("") + '</div>' +
-      '<div class="card-p"><table class="tbl"><thead><tr><th>ID</th><th>Finding</th><th>Surface</th><th>ATT&CK</th><th>Severity</th><th>Status</th></tr></thead><tbody id="findBody"></tbody></table></div>';
-    renderFindings("All");
-
-    // Social
-    $("#v-social").innerHTML =
-      '<div class="view-head"><span class="eyebrow">Social engineering</span><h1>Omnichannel campaign</h1>' +
-      '<p>CMP-2044, orchestrated across every channel a real attacker would use, with one consistent narrative.</p></div>' +
-      '<div class="stat-row">' + statCard("Targets", "722", "", "scoped roster") +
-        statCard("Engaged", "29%", "down", "across all channels") +
-        statCard("Reported", "38%", "up", "improving vs last run") +
-        statCard("Channels", "6", "", "email to live deepfake") + '</div>' +
-      '<div class="card-p"><h3>Channel performance</h3><p class="sub">Engagement and report rates by channel</p>' +
-      '<table class="tbl"><thead><tr><th>Channel</th><th>Targets</th><th>Engaged</th><th>Credentialed</th><th>Notable</th></tr></thead><tbody>' +
-      rows(social) + '</tbody></table></div>';
-
-    // Compliance
-    $("#v-compliance").innerHTML =
-      '<div class="view-head"><span class="eyebrow">Compliance</span><h1>Framework coverage</h1>' +
-      '<p>Findings mapped in real time to the frameworks ' + ORG + ' is held to. One click exports the evidence pack.</p></div>' +
-      '<div style="margin-bottom:20px"><button class="btn-mini" id="auditBtn">Generate one click audit pack</button></div>' +
-      '<div class="heat">' + frameworks.map(function (f) {
-        return "<div class='hcell " + f[2] + "'><div class='nm'>" + f[0] + "</div><div class='pct'>" +
-          f[1] + "%</div><div class='lbl'>control coverage</div></div>";
-      }).join("") + '</div>';
-
-    // Executive report
-    $("#v-report").innerHTML =
-      '<div class="view-head"><span class="eyebrow">Executive reporting</span><h1>Board pack</h1>' +
-      '<p>One truth, told the way each room needs to hear it. Generated from the same campaign that proved the findings.</p></div>' +
-      '<div style="margin-bottom:20px"><button class="btn-mini" id="expBtn">Export board pack</button> ' +
-      '<button class="btn-mini ghost" id="expAudit">Export auditor evidence</button></div>' +
-      '<div class="grid-2 even"><div class="card-p"><h3>Posture and risk</h3><p class="sub">Defensible numbers with evidence behind them</p>' +
-        kv("Posture score", "72 / 100", 72) + kv("Residual critical risk", "Trending down", 22) +
-        kv("Mean time to validated proof", "28 min", 88) + kv("Remediation rate", "76%", 76) + '</div>' +
-      '<div class="card-p"><h3>What the board needs to decide</h3><p class="sub">Tied to owners and impact</p>' +
-        '<table class="tbl"><tbody>' +
-        '<tr><td>Isolate Jenkins, rotate svc_ci</td><td class="st-bad">Critical</td><td>Platform</td></tr>' +
-        '<tr><td>Block public access on statement store</td><td class="st-bad">Critical</td><td>Cloud</td></tr>' +
-        '<tr><td>Settlement invariant checks</td><td class="st-bad">Critical</td><td>Payments</td></tr>' +
-        '<tr><td>Phishing resistant MFA rollout</td><td class="st-run">High</td><td>IT Security</td></tr>' +
-        '</tbody></table></div></div>';
-
-    bindRows();
-    if ($("#auditBtn")) $("#auditBtn").onclick = function () {
-      toast("Audit pack generated", "Evidence mapped to 9 frameworks. Auditor ready export prepared.");
-    };
-    if ($("#expBtn")) $("#expBtn").onclick = function () {
-      toast("Board pack exported", "One page narrative with owners and decisions is ready.");
-      fakeDownload("cherubim-board-pack.txt", "Cherubim board pack for " + ORG + "\\nPosture 72/100. 4 critical findings, all proven.\\nGenerated from CMP-2041.");
-    };
-    if ($("#expAudit")) $("#expAudit").onclick = function () {
-      toast("Auditor evidence exported", "Proofs, chain of custody, and control mapping bundled.");
-    };
-  }
-
-  function statCard(k, v, dir, d) {
-    return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v +
-      '</div><div class="d ' + (dir || "") + '">' + (d || "") + '</div></div>';
-  }
-  function surfBar(n, p) {
-    return '<div class="kv"><span>' + n + '</span><b>' + p + '</b></div><div class="bar"><i style="width:' + p + '%"></i></div>';
-  }
-  function kv(n, v, p) {
-    return '<div class="kv"><span>' + n + '</span><b>' + v + '</b></div><div class="bar"><i style="width:' + p + '%"></i></div>';
-  }
-
-  function renderFindings(filter) {
-    var list = filter === "All" ? findings : findings.filter(function (f) { return f.sev === filter; });
-    $("#findBody").innerHTML = list.map(function (f) {
-      return "<tr class='clk' data-f='" + f.id + "'><td>" + f.id + "</td><td>" + f.t +
-        "</td><td>" + f.surf + "</td><td style='font-family:JetBrains Mono;font-size:11px;color:var(--gold)'>" + f.att +
-        "</td><td><span class='tag " + sevClass[f.sev] + "'>" + f.sev + "</span></td><td class='st-ok'>Proven</td></tr>";
-    }).join("");
-    bindRows();
-  }
-
-  function bindRows() {
-    document.querySelectorAll("tr.clk").forEach(function (tr) {
-      tr.onclick = function () { openDrawer(tr.getAttribute("data-f")); };
-    });
-    var chips = $("#sevChips");
-    if (chips) chips.querySelectorAll(".chip").forEach(function (c) {
-      c.onclick = function () {
-        chips.querySelectorAll(".chip").forEach(function (x) { x.classList.remove("on"); });
-        c.classList.add("on"); renderFindings(c.getAttribute("data-s"));
-      };
-    });
-  }
-
-  // ---------------- DRAWER ----------------
-  function openDrawer(id) {
-    var f = findings.filter(function (x) { return x.id === id; })[0];
-    if (!f) return;
-    $("#drawerBody").innerHTML =
-      '<button class="x" id="drawerX">&times;</button>' +
-      '<span class="eyebrow mono" style="color:var(--gold);font-size:11px;letter-spacing:.16em">[ ' + f.id + ' ]</span>' +
-      '<h3>' + f.t + '</h3>' +
-      '<div class="meta"><span class="tag ' + sevClass[f.sev] + '">' + f.sev +
-        '</span><span class="tag sev-low">' + f.surf + '</span><span class="tag sev-med">' + f.att +
-        '</span><span class="tag" style="border:1px solid var(--line);color:#3FB984">PROVEN</span></div>' +
-      '<h5>Summary</h5><p>' + f.d + '</p>' +
-      '<h5>Validated proof of concept</h5><div class="code">' + f.poc + '</div>' +
-      '<h5>Remediation</h5><p>' + f.fix + '</p>' +
-      '<h5>Evidence</h5><p>Sandbox recording, request and response capture, and chain of custody timestamps are attached to the evidence pack. Mapped to NIST CSF 2.0, the Singapore Cybersecurity Act, and the CSA Cyber Trust mark.</p>';
-    $("#scrim").classList.add("open");
-    $("#drawer").classList.add("open");
-    $("#drawerX").onclick = closeDrawer;
-  }
-  function closeDrawer() {
-    $("#scrim").classList.remove("open");
-    $("#drawer").classList.remove("open");
-  }
-
-  // ---------------- LAUNCH CAMPAIGN ----------------
-  var launchSteps = [
-    "agent.recon  mapping connected stack",
-    "agent.network  enumerating internal subnets",
-    "agent.cloud  auditing AWS and EKS roles",
-    "agent.identity  probing Active Directory",
-    "agent.web  testing application business logic",
-    "validator  reproducing candidate findings",
-    "compliance.map  tagging to frameworks",
-    "report.engine  assembling evidence pack"
+  state.campaigns = [
+    { id: "CMP-2041", name: "Full stack assumed breach", type: "Assumed breach", scope: "Network, Cloud, Identity", status: "Completed", prog: 100, started: "18 May 2026 09:12", dur: "31 min", crit: 2, high: 2, med: 0 },
+    { id: "CMP-2039", name: "External perimeter assessment", type: "External", scope: "Web, API", status: "Completed", prog: 100, started: "16 May 2026 14:02", dur: "22 min", crit: 1, high: 0, med: 0 },
+    { id: "CMP-2044", name: "Omnichannel social engineering", type: "Social", scope: "722 staff roster", status: "Running", prog: 63, started: "19 May 2026 08:40", dur: "live", crit: 0, high: 0, med: 0 },
+    { id: "CMP-2037", name: "Cloud and Kubernetes review", type: "Cloud", scope: "AWS, Azure, EKS", status: "Completed", prog: 100, started: "12 May 2026 10:30", dur: "26 min", crit: 1, high: 1, med: 0 },
+    { id: "CMP-2031", name: "Active Directory to Domain Admin", type: "Identity", scope: "nw-corp.local", status: "Completed", prog: 100, started: "06 May 2026 11:15", dur: "19 min", crit: 0, high: 0, med: 1 }
   ];
 
-  function launchModal() {
-    $("#modalScrim").classList.add("open");
-    var log = $("#runLog"), prog = $("#runProg"), bar = $("#runBar"), go = $("#runGo");
-    log.innerHTML = ""; prog.classList.remove("show"); bar.style.width = "0%";
-    go.disabled = false; go.textContent = "Launch campaign";
-    go.onclick = function () {
-      go.disabled = true; go.textContent = "Running";
-      prog.classList.add("show");
-      var i = 0;
-      var iv = setInterval(function () {
-        if (i < launchSteps.length) {
-          var line = document.createElement("div");
-          line.innerHTML = "<span class='ok'>[ok]</span> " + launchSteps[i];
-          log.appendChild(line); log.scrollTop = log.scrollHeight;
-          bar.style.width = Math.round(((i + 1) / launchSteps.length) * 100) + "%";
-          i++;
-        } else {
-          clearInterval(iv);
-          var cid = "CMP-" + (2045 + Math.floor(Math.random() * 9));
-          campaigns.unshift([cid, "Full stack assumed breach", "Network, Cloud, Identity", "Completed", "100%", "2 high  1 critical"]);
-          stats.findings += 3; stats.critical += 1;
-          findings.unshift({
-            id: "F-33" + (10 + Math.floor(Math.random() * 80)), t: "Over scoped CI token enables lateral movement",
-            sev: "Critical", surf: "Supply chain", att: "T1078 / T1552",
-            d: "A long lived CI token discovered during this campaign grants write access across three production namespaces.",
-            poc: "$ curl -H 'Authorization: Bearer <span class='g'>[recovered]</span>' ...\n<span class='ok'>[+] Cross namespace write proven in sandbox.</span>",
-            fix: "Short lived OIDC tokens, scope per pipeline, rotate and alert on token reuse."
-          });
-          setTimeout(function () {
-            $("#modalScrim").classList.remove("open");
-            toast("Campaign " + cid + " complete", "1 critical and 2 high findings proven and mapped to your frameworks.");
-            render(); route(location.hash || "#/overview");
-          }, 700);
-        }
-      }, 520);
-    };
+  /* ============================ SVG CHARTS ============================ */
+  function gauge(val, label) {
+    var r = 62, c = 2 * Math.PI * r, off = c * (1 - val / 100);
+    return '<div class="gauge"><svg viewBox="0 0 150 150">' +
+      '<circle cx="75" cy="75" r="62" fill="none" stroke="rgba(236,232,222,.08)" stroke-width="10"/>' +
+      '<circle cx="75" cy="75" r="62" fill="none" stroke="url(#gg)" stroke-width="10" stroke-linecap="round" ' +
+      'stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + c.toFixed(1) + '" transform="rotate(-90 75 75)" ' +
+      'style="transition:stroke-dashoffset 1.4s var(--ease)" data-off="' + off.toFixed(1) + '"/>' +
+      '<defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D6B066"/><stop offset="1" stop-color="#EBD49A"/></linearGradient></defs>' +
+      '</svg><div class="gv"><b>' + val + '</b><span>' + label + '</span></div></div>';
+  }
+  function donut(seg) {
+    var tot = seg.reduce(function (a, s) { return a + s.v; }, 0) || 1, r = 56, c = 2 * Math.PI * r, acc = 0;
+    var arcs = seg.map(function (s) {
+      var len = c * (s.v / tot), el =
+        '<circle cx="70" cy="70" r="56" fill="none" stroke="' + s.c + '" stroke-width="14" ' +
+        'stroke-dasharray="' + len.toFixed(1) + ' ' + (c - len).toFixed(1) + '" stroke-dashoffset="' + (-acc).toFixed(1) + '" transform="rotate(-90 70 70)"/>';
+      acc += len; return el;
+    }).join("");
+    return '<svg viewBox="0 0 140 140" style="width:148px;height:148px;flex-shrink:0">' +
+      '<circle cx="70" cy="70" r="56" fill="none" stroke="rgba(236,232,222,.06)" stroke-width="14"/>' + arcs +
+      '<text x="70" y="66" text-anchor="middle" fill="#F4EFE3" font-family="Fraunces" font-size="26">' + tot + '</text>' +
+      '<text x="70" y="84" text-anchor="middle" fill="#8C97AC" font-family="JetBrains Mono" font-size="8" letter-spacing="1">FINDINGS</text></svg>';
+  }
+  function spark(data, color, h) {
+    h = h || 70; var w = 320, mn = Math.min.apply(null, data), mx = Math.max.apply(null, data), rng = (mx - mn) || 1;
+    var pts = data.map(function (v, i) {
+      return [(i / (data.length - 1)) * w, h - 8 - ((v - mn) / rng) * (h - 18)];
+    });
+    var d = pts.map(function (p, i) { return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(" ");
+    var area = d + " L" + w + " " + h + " L0 " + h + " Z";
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" style="width:100%;height:' + h + 'px">' +
+      '<defs><linearGradient id="sp' + color.slice(1) + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + color + '" stop-opacity=".28"/><stop offset="1" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>' +
+      '<path d="' + area + '" fill="url(#sp' + color.slice(1) + ')"/>' +
+      '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<circle cx="' + pts[pts.length - 1][0].toFixed(1) + '" cy="' + pts[pts.length - 1][1].toFixed(1) + '" r="3.5" fill="' + color + '"/></svg>';
+  }
+  function vbars(data) {
+    var mx = Math.max.apply(null, data.map(function (d) { return d[1]; })) || 1;
+    return '<div style="display:flex;align-items:flex-end;gap:6px;height:150px">' + data.map(function (d) {
+      var hp = Math.max(4, (d[1] / mx) * 100);
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%;justify-content:flex-end">' +
+        '<span style="font-family:JetBrains Mono;font-size:10px;color:var(--gold-soft)">' + d[1] + '</span>' +
+        '<div style="width:100%;height:' + hp + '%;background:linear-gradient(180deg,var(--gold),rgba(214,176,102,.25));border-radius:2px 2px 0 0;min-height:4px"></div>' +
+        '<span style="font-size:9px;color:var(--muted);text-align:center;line-height:1.2;height:22px">' + d[0] + '</span></div>';
+    }).join("") + '</div>';
   }
 
-  // ---------------- ROUTER ----------------
-  var views = ["overview", "surface", "campaigns", "paths", "findings", "social", "compliance", "report"];
-  function route(hash) {
-    var key = (hash || "").replace("#/", "") || "overview";
-    if (views.indexOf(key) < 0) key = "overview";
-    views.forEach(function (v) {
-      $("#v-" + v).classList.toggle("active", v === key);
-    });
-    document.querySelectorAll(".nav-item").forEach(function (n) {
-      n.classList.toggle("active", n.getAttribute("data-r") === key);
-    });
-    $("#side") && $("#side").classList.remove("open");
-    if (key === "overview") startTicker();
-    window.scrollTo(0, 0);
+  /* ============================ VIEW RENDERERS ============================ */
+  function statCard(k, v, dir, d) {
+    return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="d ' + (dir || "") + '">' + (d || "") + '</div></div>';
+  }
+  function sevTag(s) { return '<span class="tag ' + SEVC[s] + '">' + s + '</span>'; }
+
+  function vOverview() {
+    var sc = state.findings.reduce(function (a, f) { a[f.sev] = (a[f.sev] || 0) + 1; return a; }, {});
+    var seg = ["Critical", "High", "Medium", "Low"].map(function (k) { return { v: sc[k] || 0, c: COL[k] }; });
+    var crit = sc.Critical || 0, running = state.campaigns.filter(function (c) { return c.status === "Running"; }).length;
+    return '<div class="view-head"><div><span class="eyebrow">Command center</span>' +
+      '<h1>Security posture</h1><p>Live, evidence backed view of automated penetration testing across ' + ORG + "'s entire connected stack.</p></div>" +
+      '<div class="head-actions"><button class="btn-mini ghost sm" data-go="report">Open board pack</button><button class="btn-mini sm" id="launchBtn2">+ Launch campaign</button></div></div>' +
+      '<div class="stat-row">' +
+        statCard("Posture score", state.posture + " / 100", "up", "&#9650; 6 this quarter") +
+        statCard("Open findings", state.findings.length, "down", "12 remediated this month") +
+        statCard("Critical, all proven", crit, "down", "deterministically validated") +
+        statCard("Active campaigns", running, "", state.campaigns.length + " total this period") +
+      '</div>' +
+      '<div class="grid-3">' +
+        '<div class="card-p"><h3>Posture trend</h3><p class="sub">Validated resilience, last 10 weeks</p>' + spark(state.postureSeries, "#D6B066", 96) + '</div>' +
+        '<div class="card-p"><h3>Open findings trend</h3><p class="sub">Net of remediation, last 10 weeks</p>' + spark(state.findingsSeries, "#7FA8D8", 96) + '</div>' +
+        '<div class="card-p"><h3>Findings by severity</h3><p class="sub">Current open, validated</p><div class="flex-mid">' + donut(seg) +
+          '<div class="legend">' + ["Critical", "High", "Medium", "Low"].map(function (k) {
+            return '<div><i style="background:' + COL[k] + '"></i>' + k + '<b>' + (sc[k] || 0) + '</b></div>'; }).join("") + '</div></div></div>' +
+      '</div>' +
+      '<div class="grid-2" style="margin-top:14px">' +
+        '<div class="card-p"><h3>Live agent activity</h3><p class="sub">Autonomous agents working across the connected stack</p><div class="ticker" id="ticker"></div></div>' +
+        '<div class="card-p"><h3>Posture by attack surface</h3><p class="sub">Validated resilience per layer, higher is better</p>' +
+          state.surfaces.map(function (s) {
+            return '<div class="kv"><span>' + s.n + ' <span class="st-mut">&middot; ' + s.assets + ' assets</span></span><b>' + s.s + '</b></div><div class="bar"><i style="width:' + s.s + '%"></i></div>';
+          }).join("") + '</div></div>' +
+      '<div class="grid-2 even" style="margin-top:14px">' +
+        '<div class="card-p"><h3>MITRE ATT&CK coverage</h3><p class="sub">Techniques exercised in the last engagement</p>' + vbars(state.attck) + '</div>' +
+        '<div class="card-p"><h3>Top risks to close</h3><p class="sub">Click a finding for evidence and remediation</p>' +
+          '<table class="tbl"><tbody>' + state.findings.slice().sort(function (a, b) { return b.cvss - a.cvss; }).slice(0, 5).map(function (f) {
+            return '<tr class="clk" data-f="' + f.id + '"><td class="mono">' + f.id + '</td><td>' + esc(f.t) + '</td><td>' + sevTag(f.sev) + '</td><td class="mono">CVSS ' + f.cvss + '</td></tr>';
+          }).join("") + '</tbody></table></div></div>';
   }
 
-  // ---------------- TICKER ----------------
+  function vCampaigns() {
+    return '<div class="view-head"><div><span class="eyebrow">Campaigns</span><h1>Engagements</h1>' +
+      '<p>Autonomous campaigns across the stack and the human layer. Launch a fully scoped engagement any time.</p></div>' +
+      '<div class="head-actions"><button class="btn-mini" id="launchBtn3">+ Launch campaign</button></div></div>' +
+      '<div class="card-p"><table class="tbl"><thead><tr><th>ID</th><th>Campaign</th><th>Type</th><th>Scope</th><th>Started</th><th>Status</th><th>Findings</th></tr></thead><tbody>' +
+      state.campaigns.map(function (c) {
+        var dot = c.status === "Running" ? '<span class="dotp run"></span>' : '<span class="dotp ok"></span>';
+        var fcount = c.status === "Running" ? '<span class="st-run">live</span>' : (c.crit + c.high + c.med) + ' (' + c.crit + 'C ' + c.high + 'H)';
+        return '<tr class="clk" data-c="' + c.id + '"><td class="mono">' + c.id + '</td><td>' + esc(c.name) +
+          '</td><td>' + c.type + '</td><td class="st-mut">' + c.scope + '</td><td class="st-mut">' + c.started +
+          '</td><td>' + dot + (c.status === "Running" ? c.prog + "%" : c.status) + '</td><td>' + fcount + '</td></tr>';
+      }).join("") + '</tbody></table></div>';
+  }
+
+  function vCampaign(id) {
+    var c = state.campaigns.filter(function (x) { return x.id === id; })[0];
+    if (!c) { location.hash = "#/campaigns"; return ""; }
+    var fs = state.findings.filter(function (f) { return f.cmp === c.id; });
+    var path = [
+      ["01", "Edge", "Exposed Jenkins on the supply chain surface", "Initial Access &middot; T1190"],
+      ["02", "Foothold", "Leaked CI credential recovered from build logs", "Credential Access &middot; T1552"],
+      ["03", "Pivot", "Lateral movement into the internal identity subnet", "Lateral Movement &middot; T1021"],
+      ["04", "Escalate", "Unconstrained delegation abused for Domain Admin", "Privilege Escalation &middot; T1078"],
+      ["05", "Impact", "Reached the customer statement store, exfiltration proven then stopped", "Impact &middot; T1530"]
+    ];
+    return '<div class="crumb" data-go="campaigns">&larr; All campaigns</div>' +
+      '<div class="view-head"><div><span class="eyebrow">' + c.id + ' &middot; ' + c.type + '</span><h1>' + esc(c.name) + '</h1>' +
+      '<p>' + c.scope + ' &middot; started ' + c.started + ' &middot; duration ' + c.dur + '</p></div>' +
+      '<div class="head-actions"><button class="btn-mini ghost sm" data-export="Engagement report">Export report</button><button class="btn-mini ghost sm" data-export="Auditor evidence pack">Export evidence</button></div></div>' +
+      '<div class="stat-row">' + statCard("Status", c.status, c.status === "Completed" ? "up" : "", c.prog + "% complete") +
+        statCard("Critical", c.crit, "down", "all reproduced") + statCard("High", c.high, "", "with proof") +
+        statCard("Validation", "100%", "up", "deterministic, zero unproven") + '</div>' +
+      '<div class="grid-2"><div class="card-p"><h3>Proven attack path</h3><p class="sub">One continuous kill chain, reproduced 3 times</p><div class="path">' +
+      path.map(function (n) { return '<div class="node"><div class="ring">' + n[0] + '</div><div><h4>' + n[1] + ' &middot; ' + n[2] + '</h4><p>' + n[3] + '</p></div><div class="att">PROVEN</div></div>'; }).join("") +
+      '</div></div><div class="card-p"><h3>Engagement timeline</h3><p class="sub">Autonomous phase log</p><div class="term" style="height:340px;overflow:auto">' +
+      ["recon: mapped scope, 1,284 assets","exploit: 6 candidate vulnerabilities","validator: reproduced 4 in sandbox","lateral: pivoted to identity subnet","privesc: reached Domain Admin","impact: proven, campaign stopped safely","compliance: mapped to 9 frameworks","report: evidence pack sealed"].map(function (l, i) {
+        return '<div><span class="ts">' + String(9 + Math.floor(i / 2)).padStart(2, "0") + ':' + String((i * 7) % 60).padStart(2, "0") + '</span> <span class="ag">' + l.split(":")[0] + '</span>:' + l.split(":").slice(1).join(":") + ' <span class="ok">[ok]</span></div>';
+      }).join("") + '</div></div></div>' +
+      '<div class="card-p span2" style="margin-top:14px"><h3>Findings in this campaign</h3><p class="sub">Click a row for the validated proof of concept</p>' +
+      '<table class="tbl"><thead><tr><th>ID</th><th>Finding</th><th>Surface</th><th>ATT&CK</th><th>CVSS</th><th>Severity</th><th>Status</th></tr></thead><tbody>' +
+      (fs.length ? fs.map(function (f) {
+        return '<tr class="clk" data-f="' + f.id + '"><td class="mono">' + f.id + '</td><td>' + esc(f.t) + '</td><td>' + f.surf + '</td><td class="mono">' + f.att + '</td><td class="mono">' + f.cvss + '</td><td>' + sevTag(f.sev) + '</td><td class="st-ok">Proven</td></tr>';
+      }).join("") : '<tr><td colspan="7" class="st-mut">No findings recorded for this campaign.</td></tr>') + '</tbody></table></div>';
+  }
+
+  function vSurface() {
+    var by = {};
+    state.assets.forEach(function (a) { by[a[2]] = (by[a[2]] || 0) + 1; });
+    var donutSeg = Object.keys(by).map(function (k, i) { return { v: by[k], c: [COL.High, COL.Low, COL.Medium, COL.ok, COL.Critical, COL.mut][i % 6] }; });
+    return '<div class="view-head"><div><span class="eyebrow">Attack surface</span><h1>Connected stack inventory</h1>' +
+      '<p>Continuously discovered from 14 connectors the moment ' + ORG + ' plugged its environment in.</p></div></div>' +
+      '<div class="stat-row">' + statCard("Assets discovered", "1,284", "", "auto, continuous") +
+        statCard("Internet facing", "97", "", "monitored hourly") + statCard("Misconfigured", "23", "down", "tracked to owners") +
+        statCard("Surfaces", "7", "", "network to supply chain") + '</div>' +
+      '<div class="grid-2"><div class="card-p span2"><h3>Discovered assets</h3><p class="sub">Representative slice of the live inventory, click for detail</p>' +
+      '<table class="tbl"><thead><tr><th>Asset</th><th>Type</th><th>Surface</th><th>Exposure</th><th>State</th><th>Owner</th></tr></thead><tbody>' +
+      state.assets.map(function (a, i) {
+        return '<tr class="clk" data-a="' + i + '"><td class="mono">' + a[0] + '</td><td>' + a[1] + '</td><td>' + a[2] + '</td><td>' + sevTag(a[3]) + '</td><td class="st-mut">' + a[4] + '</td><td class="st-mut">' + a[5] + '</td></tr>';
+      }).join("") + '</tbody></table></div></div>';
+  }
+
+  function vPaths() {
+    var path = [
+      ["01", "Edge", "Exposed Jenkins on the supply chain surface", "Initial Access &middot; T1190"],
+      ["02", "Foothold", "Leaked CI credential recovered from build logs", "Credential Access &middot; T1552"],
+      ["03", "Pivot", "Lateral movement into the internal identity subnet", "Lateral Movement &middot; T1021"],
+      ["04", "Escalate", "Unconstrained delegation abused for Domain Admin", "Privilege Escalation &middot; T1078"],
+      ["05", "Impact", "Reached the customer statement store, exfiltration proven then stopped", "Impact &middot; T1530"]
+    ];
+    return '<div class="view-head"><div><span class="eyebrow">Attack paths</span><h1>Proven attack path</h1>' +
+      '<p>One continuous kill chain from an exposed edge to customer data. Reproduced and validated, not theoretical.</p></div></div>' +
+      '<div class="card-p"><h3>CMP-2041 &middot; Edge to impact</h3><p class="sub">Full stack assumed breach &middot; reproduced 3 times &middot; stopped before real loss</p><div class="path">' +
+      path.map(function (n) { return '<div class="node"><div class="ring">' + n[0] + '</div><div><h4>' + n[1] + ' &middot; ' + n[2] + '</h4><p>' + n[3] + '</p></div><div class="att">PROVEN</div></div>'; }).join("") +
+      '</div></div>';
+  }
+
+  function vFindings() {
+    return '<div class="view-head"><div><span class="eyebrow">Findings</span><h1>Validated findings</h1>' +
+      '<p>Every finding was reproduced by a deterministic validator. No proof, no finding.</p></div></div>' +
+      '<div class="chips" id="sevChips">' + ["All", "Critical", "High", "Medium"].map(function (s, i) {
+        return '<span class="chip' + (i === 0 ? " on" : "") + '" data-s="' + s + '">' + s + '</span>'; }).join("") + '</div>' +
+      '<div class="card-p"><table class="tbl"><thead><tr><th>ID</th><th>Finding</th><th>Surface</th><th>ATT&CK</th><th>CVSS</th><th>Severity</th><th>Status</th></tr></thead><tbody id="findBody"></tbody></table></div>';
+  }
+  function fillFindings(filter) {
+    var list = filter && filter !== "All" ? state.findings.filter(function (f) { return f.sev === filter; }) : state.findings;
+    $("#findBody").innerHTML = list.map(function (f) {
+      return '<tr class="clk" data-f="' + f.id + '"><td class="mono">' + f.id + '</td><td>' + esc(f.t) + '</td><td>' + f.surf + '</td><td class="mono">' + f.att + '</td><td class="mono">' + f.cvss + '</td><td>' + sevTag(f.sev) + '</td><td class="st-ok">Proven</td></tr>';
+    }).join("");
+    bindClicks();
+  }
+
+  function vSocial() {
+    return '<div class="view-head"><div><span class="eyebrow">Social engineering</span><h1>Omnichannel campaign</h1>' +
+      '<p>CMP-2044, one consistent narrative across every channel a real attacker would use.</p></div></div>' +
+      '<div class="stat-row">' + statCard("Roster targeted", "722", "", "scoped, consented") +
+        statCard("Engaged", "29%", "down", "any channel") + statCard("Credentialed", "6%", "down", "improving vs last run") +
+        statCard("Reported", "38%", "up", "median 6 min") + '</div>' +
+      '<div class="grid-2"><div class="card-p span2"><h3>Channel performance</h3><p class="sub">Engagement, credential capture, and report rate by channel</p>' +
+      '<table class="tbl"><thead><tr><th>Channel</th><th>Targets</th><th>Engaged</th><th>Credentialed</th><th>Notable</th></tr></thead><tbody>' +
+      state.social.map(function (s) {
+        return '<tr><td>' + s[0] + '</td><td class="mono">' + s[1] + '</td><td><div class="kv" style="margin:0 0 5px"><span></span><b>' + s[2] + '%</b></div><div class="bar"><i style="width:' + s[2] + '%"></i></div></td><td class="mono">' + s[3] + '%</td><td class="st-mut">' + s[4] + '</td></tr>';
+      }).join("") + '</tbody></table></div></div>';
+  }
+
+  function vCompliance() {
+    return '<div class="view-head"><div><span class="eyebrow">Compliance</span><h1>Framework coverage</h1>' +
+      '<p>Findings mapped in real time to every framework ' + ORG + ' is held to. One click exports the evidence pack.</p></div>' +
+      '<div class="head-actions"><button class="btn-mini" data-export="One click audit pack (9 frameworks)">Generate audit pack</button></div></div>' +
+      '<div class="heat">' + state.frameworks.map(function (f) {
+        return '<div class="hcell ' + f[2] + '"><div class="nm">' + f[0] + '</div><div class="pct">' + f[1] + '%</div><div class="lbl">control coverage</div></div>';
+      }).join("") + '</div>' +
+      '<div class="card-p" style="margin-top:18px"><h3>How mapping works</h3><p class="sub">Every validated finding carries its control references</p>' +
+      '<table class="tbl"><thead><tr><th>Finding</th><th>Severity</th><th>Mapped controls</th></tr></thead><tbody>' +
+      state.findings.slice(0, 5).map(function (f) {
+        return '<tr class="clk" data-f="' + f.id + '"><td>' + esc(f.t) + '</td><td>' + sevTag(f.sev) + '</td><td class="st-mut">' + (f.fw || []).join(" &middot; ") + '</td></tr>';
+      }).join("") + '</tbody></table></div>';
+  }
+
+  function vReport() {
+    return '<div class="view-head"><div><span class="eyebrow">Executive reporting</span><h1>Board pack</h1>' +
+      '<p>One truth, told the way each room needs to hear it. Generated from the same campaigns that proved the findings.</p></div>' +
+      '<div class="head-actions"><button class="btn-mini" data-export="Board pack (one page)">Export board pack</button><button class="btn-mini ghost sm" data-export="Auditor evidence">Export evidence</button></div></div>' +
+      '<div class="grid-3"><div class="card-p"><h3>Posture</h3><p class="sub">Defensible, evidence backed</p><div class="flex-mid">' + gauge(state.posture, "of 100") + '</div></div>' +
+      '<div class="card-p"><h3>Posture trend</h3><p class="sub">Last 10 weeks</p>' + spark(state.postureSeries, "#D6B066", 110) + '</div>' +
+      '<div class="card-p"><h3>Residual risk</h3><p class="sub">Critical exposure over time</p>' + spark([9, 8, 8, 7, 6, 6, 5, 5, 4, 4], "#E0795A", 110) + '</div></div>' +
+      '<div class="grid-2 even" style="margin-top:14px"><div class="card-p"><h3>Key metrics</h3><p class="sub">For the board</p>' +
+      ['Mean time to validated proof|28 min|88', 'Critical findings, all proven|' + state.findings.filter(function (f) { return f.sev === "Critical"; }).length + '|30', 'Remediation rate|76%|76', 'Frameworks evidenced|9 of 9|100'].map(function (k) {
+        var p = k.split("|"); return '<div class="kv"><span>' + p[0] + '</span><b>' + p[1] + '</b></div><div class="bar"><i style="width:' + p[2] + '%"></i></div>';
+      }).join("") + '</div>' +
+      '<div class="card-p"><h3>Decisions for the board</h3><p class="sub">Tied to owners and impact</p><table class="tbl"><tbody>' +
+      '<tr><td>Isolate Jenkins, rotate svc_ci</td><td>' + sevTag("Critical") + '</td><td class="st-mut">Platform</td></tr>' +
+      '<tr><td>Block public access on statement store</td><td>' + sevTag("Critical") + '</td><td class="st-mut">Cloud</td></tr>' +
+      '<tr><td>Settlement invariant checks</td><td>' + sevTag("Critical") + '</td><td class="st-mut">Payments</td></tr>' +
+      '<tr><td>Phishing resistant MFA rollout</td><td>' + sevTag("High") + '</td><td class="st-mut">IT Security</td></tr>' +
+      '</tbody></table></div></div>';
+  }
+
+  function vConnectors() {
+    var cats = {};
+    state.connectors.forEach(function (c) { (cats[c[1]] = cats[c[1]] || []).push(c); });
+    return '<div class="view-head"><div><span class="eyebrow">Integrations</span><h1>Connected stack</h1>' +
+      '<p>Cherubim ingests from these connectors continuously. This is the surface every campaign can reach.</p></div>' +
+      '<div class="head-actions"><button class="btn-mini ghost sm" data-toast="Connector catalogue|41 more integrations available">+ Add connector</button></div></div>' +
+      '<div class="stat-row">' + statCard("Connectors", "14", "", "all healthy") + statCard("Surfaces covered", "7", "", "full stack") +
+        statCard("Assets ingested", "1,284", "up", "continuous") + statCard("Last sync", "live", "", "streaming") + '</div>' +
+      Object.keys(cats).map(function (cat) {
+        return '<h3 style="font-family:Fraunces;color:var(--paper);font-size:17px;margin:24px 0 12px">' + cat + '</h3><div class="conn-grid">' +
+          cats[cat].map(function (c) {
+            return '<div class="conn"><div class="ct"><span class="cn">' + c[0] + '</span><span class="cs">&#9679; ' + c[2] + '</span></div>' +
+              '<div class="cmeta">Scope <b>' + c[3] + '</b><br>Last sync <b>' + c[4] + '</b></div></div>';
+          }).join("") + '</div>';
+      }).join("");
+  }
+
+  function vSettings() {
+    return '<div class="view-head"><div><span class="eyebrow">Engagement rules</span><h1>Guardrails and authorization</h1>' +
+      '<p>Powerful by design, safe by obligation. These controls bound every campaign Cherubim runs.</p></div></div>' +
+      '<div class="grid-2 even"><div class="card-p"><h3>Safety guardrails</h3><p class="sub">Enforced on every engagement</p>' +
+      [['Authorization gate','No campaign starts without a signed, scoped authorization',true],
+       ['Stop before real loss','Demonstrate the path, capture proof, never cause damage',true],
+       ['Consent for cloned personas','Voice and likeness require explicit consent',true],
+       ['Roster and exclusion lists','Targeting respects defined inclusion and exclusion',true],
+       ['Stand down on distress','Social campaigns halt on distress signals',true],
+       ['Watermarked synthetic media','All deepfake assets are watermarked and logged',true]].map(function (t) {
+        return '<div class="toggle-row"><div>' + t[0] + '<small>' + t[1] + '</small></div><label class="sw"><input type="checkbox" ' + (t[2] ? "checked" : "") + ' disabled><span class="tk"></span></label></div>';
+      }).join("") + '</div>' +
+      '<div class="card-p"><h3>Default engagement window</h3><p class="sub">Applied unless overridden in the wizard</p>' +
+      '<div class="frm"><label>Blackout windows</label><input type="text" value="Mon-Fri 09:00-18:00 SGT excluded" readonly></div>' +
+      '<div class="frm"><label>Max concurrent agents</label><input type="text" value="120" readonly></div>' +
+      '<div class="frm"><label>Data residency</label><input type="text" value="Singapore (ap-southeast-1)" readonly></div>' +
+      '<div class="frm"><label>Evidence retention</label><input type="text" value="400 days, immutable, chain of custody" readonly></div>' +
+      '<div class="frm"><label>Accountable owner</label><input type="text" value="D. Aron, CISO" readonly></div></div></div>';
+  }
+
+  /* ============================ ROUTER ============================ */
+  var views = {
+    overview: vOverview, campaigns: vCampaigns, campaign: vCampaign, surface: vSurface, paths: vPaths,
+    findings: vFindings, social: vSocial, compliance: vCompliance, report: vReport, connectors: vConnectors, settings: vSettings
+  };
   var tickerIv;
-  function startTicker() {
-    var box = $("#ticker");
-    if (!box) return;
+  function route() {
+    var h = (location.hash || "#/overview").replace("#/", ""), parts = h.split("/"), key = parts[0] || "overview";
+    if (!views[key]) key = "overview";
+    Object.keys(views).forEach(function (v) {
+      var el = $("#v-" + v); if (el) el.classList.remove("active");
+    });
+    var el = $("#v-" + key);
+    el.innerHTML = views[key](parts[1]);
+    el.classList.add("active");
+    $$(".nav-item").forEach(function (n) { n.classList.toggle("active", n.getAttribute("data-r") === key); });
+    if ($("#side")) $("#side").classList.remove("open");
+    window.scrollTo(0, 0);
     clearInterval(tickerIv);
-    box.innerHTML = "";
-    var i = 0;
+    if (key === "overview") { animateGauges(); startTicker(); }
+    if (key === "report") animateGauges();
+    if (key === "findings") fillFindings("All");
+    bindClicks();
+    $("#viewWrap").scrollIntoView ? null : null;
+  }
+  function animateGauges() {
+    setTimeout(function () {
+      $$("circle[data-off]").forEach(function (c) { c.style.strokeDashoffset = c.getAttribute("data-off"); });
+    }, 80);
+  }
+
+  /* ============================ TICKER ============================ */
+  var activity = [
+    ["agent.recon", "mapped 1,284 assets across 7 surfaces"],
+    ["agent.web", "confirmed business logic flaw on payments.northwind.io"],
+    ["validator", "reproduced F-3303 in isolated sandbox (3x)"],
+    ["agent.identity", "recovered service credential from CI logs"],
+    ["agent.cloud", "assumed node role via IMDS on nw-prod-eks"],
+    ["narrative.engine", "escalated vishing scenario on engagement"],
+    ["agent.network", "proved guest VLAN reaches corporate subnet"],
+    ["compliance.map", "tagged F-3301 to NIST PR.AC and Cyber Trust"],
+    ["validator", "marked F-3306 PROVEN, evidence pack updated"],
+    ["agent.identity", "reached Domain Admin, campaign stopped safely"]
+  ];
+  function startTicker() {
+    var box = $("#ticker"); if (!box) return;
+    box.innerHTML = ""; var i = 0;
     function add() {
-      var t = new Date(Date.now() - (10 - (i % 10)) * 3000)
-        .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-      var ln = document.createElement("div");
+      var t = new Date(Date.now() - (8 - (i % 8)) * 3000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      var a = activity[i % activity.length], ln = document.createElement("div");
       ln.className = "ln";
-      ln.innerHTML = "<span class='t'>" + t + "</span><b>" + activity[i % activity.length] + "</b>";
+      ln.innerHTML = '<span class="t">' + t + '</span><span><b>' + a[0] + '</b> ' + a[1] + '</span>';
       box.insertBefore(ln, box.firstChild);
-      while (box.children.length > 9) box.removeChild(box.lastChild);
+      while (box.children.length > 8) box.removeChild(box.lastChild);
       i++;
     }
     for (var k = 0; k < 7; k++) add();
     tickerIv = setInterval(add, 3200);
   }
 
-  // ---------------- INIT ----------------
-  document.addEventListener("DOMContentLoaded", function () {
-    render();
-    route(location.hash);
-    window.addEventListener("hashchange", function () { route(location.hash); });
+  /* ============================ DRAWER ============================ */
+  function openFinding(id) {
+    var f = state.findings.filter(function (x) { return x.id === id; })[0]; if (!f) return;
+    $("#drawerBody").innerHTML =
+      '<button class="x" data-x>&times;</button>' +
+      '<span style="font-family:JetBrains Mono;color:var(--gold);font-size:11px;letter-spacing:.16em">[ ' + f.id + ' &middot; ' + f.cmp + ' ]</span>' +
+      '<h3>' + esc(f.t) + '</h3>' +
+      '<div class="meta">' + sevTag(f.sev) + '<span class="tag sev-low">' + f.surf + '</span><span class="tag sev-med">' + f.att +
+      '</span><span class="tag" style="border:1px solid rgba(63,185,132,.4);color:#3FB984">CVSS ' + f.cvss + '</span>' +
+      '<span class="tag" style="border:1px solid rgba(63,185,132,.4);color:#3FB984">PROVEN</span></div>' +
+      '<h5>Summary</h5><p>' + esc(f.d) + '</p>' +
+      '<h5>Validated proof of concept</h5><div class="code">' + f.poc + '</div>' +
+      '<h5>Remediation</h5><p>' + esc(f.fix) + '</p>' +
+      '<h5>Mapped controls</h5><div class="fwtags">' + (f.fw || []).map(function (x) { return '<span>' + x + '</span>'; }).join("") + '</div>' +
+      '<h5>Evidence</h5><p>Sandbox recording, request and response capture, and chain of custody timestamps are sealed in the evidence pack and exportable for audit.</p>';
+    openDrawer();
+  }
+  function openAsset(i) {
+    var a = state.assets[i]; if (!a) return;
+    var rel = state.findings.filter(function (f) { return f.surf === a[2]; });
+    $("#drawerBody").innerHTML =
+      '<button class="x" data-x>&times;</button>' +
+      '<span style="font-family:JetBrains Mono;color:var(--gold);font-size:11px;letter-spacing:.16em">[ ASSET ]</span>' +
+      '<h3>' + a[0] + '</h3><div class="meta"><span class="tag sev-low">' + a[1] + '</span><span class="tag sev-med">' + a[2] +
+      '</span>' + sevTag(a[3]) + '<span class="tag sev-low">' + a[4] + '</span></div>' +
+      '<h5>Ownership</h5><p>Owner: ' + a[5] + '. Continuously monitored, last assessed under CMP-2041.</p>' +
+      '<h5>Related findings</h5>' + (rel.length ? '<table class="tbl"><tbody>' + rel.slice(0, 5).map(function (f) {
+        return '<tr class="clk" data-f="' + f.id + '"><td class="mono">' + f.id + '</td><td>' + esc(f.t) + '</td><td>' + sevTag(f.sev) + '</td></tr>'; }).join("") + '</tbody></table>' : '<p>No open findings on this asset.</p>') +
+      '<h5>Coverage</h5><p>Reachable by network, cloud, and identity agents. Included in continuous reassessment.</p>';
+    openDrawer(); bindClicks();
+  }
+  function openDrawer() { $("#scrim").classList.add("open"); $("#drawer").classList.add("open"); }
+  function closeDrawer() { $("#scrim").classList.remove("open"); $("#drawer").classList.remove("open"); }
 
-    document.querySelectorAll(".nav-item").forEach(function (n) {
-      n.onclick = function () { location.hash = "#/" + n.getAttribute("data-r"); };
+  /* ============================ LAUNCH WIZARD ============================ */
+  var TYPES = [
+    { k: "assumed", n: "Full stack assumed breach", d: "Start inside, prove the path to crown jewels across network, cloud, and identity.", scope: ["network", "cloud", "identity", "app"] },
+    { k: "external", n: "External perimeter", d: "Internet facing web, API, and exposed services from an unauthenticated start.", scope: ["app", "network"] },
+    { k: "cloud", n: "Cloud and Kubernetes", d: "AWS, Azure, GCP, and EKS misconfiguration, IAM, and container escape.", scope: ["cloud"] },
+    { k: "identity", n: "Active Directory and identity", d: "Credential attacks, Kerberos abuse, trust paths to Domain Admin.", scope: ["identity"] },
+    { k: "app", n: "Web and API deep test", d: "Business logic, access control, and chained application flaws.", scope: ["app"] },
+    { k: "social", n: "Omnichannel social engineering", d: "Email, SMS, WhatsApp, voice clone, live deepfake, Slack and Teams.", scope: ["people"] }
+  ];
+  var SCOPE_ASSETS = {
+    network: ["10.4.0.0/16 internal subnet", "vpn.northwind.io", "WIFI-NW-CORP wireless", "Palo Alto edge (14)"],
+    cloud: ["AWS prod (12 accounts)", "Azure prod (4 subs)", "GCP (2 projects)", "nw-prod-eks Kubernetes"],
+    identity: ["nw-corp.local Active Directory", "Okta tenant", "Microsoft Entra ID"],
+    app: ["payments.northwind.io", "api-gw.northwind.io", "mssql-fin-01", "340 GitHub repos"],
+    people: ["Finance roster (118)", "Executive roster (24)", "IT helpdesk (36)", "All staff (722)"]
+  };
+  var wiz = { step: 0, type: null, scope: {}, params: {}, channels: {}, auth: {} };
+
+  function openWiz() {
+    wiz = { step: 0, type: "assumed", scope: {}, params: { intensity: 3, concurrency: 80, window: "Off hours (18:00-06:00 SGT)", opsec: "Balanced", exploit: true, lateral: true, exfilsim: true, persist: false }, channels: { email: true, sms: true, voice: false, deepfake: false, slack: true }, auth: {} };
+    SCOPE_ASSETS.network.forEach(function () {});
+    Object.keys(SCOPE_ASSETS).forEach(function (g) { wiz.scope[g] = {}; SCOPE_ASSETS[g].forEach(function (a, i) { wiz.scope[g][i] = (g !== "people"); }); });
+    $("#wizScrim").classList.add("open");
+    renderWiz();
+  }
+  function closeWiz() { $("#wizScrim").classList.remove("open"); }
+
+  function wizSteps() {
+    var s = ["Type", "Scope and targets", "Parameters"];
+    if (wiz.type === "social") s.push("Channels");
+    s.push("Authorization"); s.push("Review");
+    return s;
+  }
+  function renderWiz() {
+    var steps = wizSteps();
+    var html = '<div class="wiz-top"><h3>Launch a campaign</h3><button class="x" data-wx>&times;</button></div>' +
+      '<div class="steps">' + steps.map(function (s, i) {
+        return '<div class="stp ' + (i === wiz.step ? "on" : i < wiz.step ? "done" : "") + '"><span class="n">' + (i < wiz.step ? "&#10003;" : i + 1) + '</span>' + s + '</div>';
+      }).join("") + '</div><div class="wiz-body" id="wizBody">' + wizBody(steps) + '</div>' +
+      '<div class="wiz-foot"><div class="wiz-warn" id="wizWarn"></div><div style="display:flex;gap:10px;margin-left:auto">' +
+      (wiz.step > 0 ? '<button class="btn-mini ghost sm" data-wb>Back</button>' : '') +
+      '<button class="btn-mini" id="wizNext">' + (wiz.step === steps.length - 1 ? "Authorize and launch" : "Continue") + '</button></div></div>';
+    $("#wiz").innerHTML = html;
+    bindWiz(steps);
+  }
+  function wizBody(steps) {
+    var label = steps[wiz.step];
+    if (label === "Type") {
+      return '<h4>Select campaign type</h4><p class="sub">Each type configures the right agents, scope, and validators.</p><div class="opt-grid">' +
+        TYPES.map(function (t) {
+          return '<label class="opt ' + (wiz.type === t.k ? "on" : "") + '" data-type="' + t.k + '"><input type="radio" name="ty" ' + (wiz.type === t.k ? "checked" : "") + '><div><div class="ob">' + t.n + '</div><div class="od">' + t.d + '</div></div></label>';
+        }).join("") + '</div>';
+    }
+    if (label === "Scope and targets") {
+      var t = TYPES.filter(function (x) { return x.k === wiz.type; })[0];
+      return '<h4>Scope and targets</h4><p class="sub">Pick exactly what is in scope. Everything else is excluded by default.</p>' +
+        t.scope.map(function (g) {
+          return '<div class="frm"><label>' + g + '</label><div class="scope-list">' + SCOPE_ASSETS[g].map(function (a, i) {
+            return '<label class="scope-row"><input type="checkbox" data-sc="' + g + '" data-si="' + i + '" ' + (wiz.scope[g][i] ? "checked" : "") + '> ' + a + '<span class="sm">' + (a.match(/\((\d+)/) ? "group" : "single") + '</span></label>';
+          }).join("") + '</div></div>';
+        }).join("") +
+        '<div class="frm"><label>Additional in scope (CIDR or host, optional)</label><input type="text" id="wizCidr" placeholder="10.20.0.0/16, app2.northwind.io"></div>' +
+        '<div class="frm"><label>Exclusions (always honoured)</label><input type="text" id="wizExcl" value="*.legacy.northwind.io, 10.4.99.0/24 (OT)"></div>';
+    }
+    if (label === "Parameters") {
+      var iv = wiz.params.intensity;
+      return '<h4>Engagement parameters</h4><p class="sub">Tune aggression, concurrency, and which techniques are permitted.</p>' +
+        '<div class="frm"><label>Attack intensity <span class="range-val" id="ivLabel">' + ["Passive", "Light", "Standard", "Aggressive", "Maximum"][iv - 1] + '</span></label><input type="range" id="wizInt" min="1" max="5" value="' + iv + '"></div>' +
+        '<div class="frm"><label>Max concurrent agents <span class="range-val" id="ccLabel">' + wiz.params.concurrency + '</span></label><input type="range" id="wizCc" min="10" max="120" step="10" value="' + wiz.params.concurrency + '"></div>' +
+        '<div class="frm"><label>Engagement window</label><select id="wizWin"><option ' + sel(wiz.params.window, "Off hours (18:00-06:00 SGT)") + '>Off hours (18:00-06:00 SGT)</option><option ' + sel(wiz.params.window, "Business hours") + '>Business hours</option><option ' + sel(wiz.params.window, "Continuous (24/7)") + '>Continuous (24/7)</option></select></div>' +
+        '<div class="frm"><label>OPSEC profile</label><select id="wizOps"><option ' + sel(wiz.params.opsec, "Loud (full speed)") + '>Loud (full speed)</option><option ' + sel(wiz.params.opsec, "Balanced") + '>Balanced</option><option ' + sel(wiz.params.opsec, "Stealth (evade detection)") + '>Stealth (evade detection)</option></select></div>' +
+        [['exploit', 'Active exploitation', 'Permit proof of concept exploitation, sandboxed'],
+         ['lateral', 'Lateral movement', 'Allow pivoting between hosts and subnets'],
+         ['exfilsim', 'Exfiltration simulation', 'Prove data reach without removing data'],
+         ['persist', 'Persistence techniques', 'Plant and clean up a controlled foothold']].map(function (p) {
+          return '<div class="toggle-row"><div>' + p[1] + '<small>' + p[2] + '</small></div><label class="sw"><input type="checkbox" data-pp="' + p[0] + '" ' + (wiz.params[p[0]] ? "checked" : "") + '><span class="tk"></span></label></div>';
+        }).join("");
+    }
+    if (label === "Channels") {
+      return '<h4>Social engineering channels</h4><p class="sub">Orchestrated under one narrative. The engine escalates only on engagement.</p>' +
+        [['email', 'Phishing email', 'Context aware lures from open source signals'],
+         ['sms', 'SMS and WhatsApp', 'Move targets off corporate channels'],
+         ['voice', 'Voice clone (vishing)', 'Consented clone of an authorised persona'],
+         ['deepfake', 'Live deepfake video', 'Join a scheduled Zoom, Teams, or Meet call'],
+         ['slack', 'Slack and Teams follow up', 'Exploit trust in internal tooling']].map(function (c) {
+          return '<div class="toggle-row"><div>' + c[1] + '<small>' + c[2] + '</small></div><label class="sw"><input type="checkbox" data-ch="' + c[0] + '" ' + (wiz.channels[c[0]] ? "checked" : "") + '><span class="tk"></span></label></div>';
+        }).join("") +
+        '<div class="frm" style="margin-top:18px"><label>Pretext theme</label><select id="wizPre"><option>Finance, urgent payment approval</option><option>IT, MFA re-enrolment</option><option>HR, benefits update</option><option>Executive, confidential acquisition</option></select></div>';
+    }
+    if (label === "Authorization") {
+      return '<h4>Authorization gate</h4><p class="sub">No campaign starts without a signed, scoped authorization from a named accountable owner.</p>' +
+        '<div class="auth-gate">' +
+        '<div class="frm"><label>Accountable owner</label><input type="text" id="wizOwner" value="D. Aron, CISO"></div>' +
+        '<div class="frm"><label>Authorization reference</label><input type="text" id="wizRef" value="AUTH-2026-0519-NW"></div>' +
+        '<label class="lk"><input type="checkbox" data-ak="a"> I confirm written authorization exists for this exact scope.</label>' +
+        '<label class="lk"><input type="checkbox" data-ak="b"> I am authorised to approve adversary simulation against ' + ORG + '.</label>' +
+        '<label class="lk"><input type="checkbox" data-ak="c"> Cherubim must stop before any real loss and seal an evidence pack.</label>' +
+        '</div>';
+    }
+    // Review
+    var t2 = TYPES.filter(function (x) { return x.k === wiz.type; })[0];
+    var scopeCount = 0; Object.keys(wiz.scope).forEach(function (g) { Object.keys(wiz.scope[g]).forEach(function (i) { if (wiz.scope[g][i] && t2.scope.indexOf(g) >= 0) scopeCount++; }); });
+    return '<h4>Review and launch</h4><p class="sub">Confirm the engagement. Cherubim will run autonomously and prove every finding.</p><div class="review">' +
+      ri("Campaign type", t2.n) + ri("Scope items", scopeCount + " selected") +
+      ri("Intensity", ["Passive", "Light", "Standard", "Aggressive", "Maximum"][wiz.params.intensity - 1]) +
+      ri("Concurrency", wiz.params.concurrency + " agents") + ri("Window", wiz.params.window) + ri("OPSEC", wiz.params.opsec) +
+      ri("Exploitation", wiz.params.exploit ? "Permitted, sandboxed" : "Disabled") +
+      ri("Lateral movement", wiz.params.lateral ? "Permitted" : "Disabled") +
+      (wiz.type === "social" ? ri("Channels", Object.keys(wiz.channels).filter(function (k) { return wiz.channels[k]; }).join(", ")) : "") +
+      ri("Owner", "D. Aron, CISO") + ri("Authorization", "AUTH-2026-0519-NW") + '</div>';
+  }
+  function ri(k, v) { return '<div class="ri"><span>' + k + '</span><b>' + v + '</b></div>'; }
+  function sel(cur, val) { return cur === val ? "selected" : ""; }
+
+  function bindWiz(steps) {
+    $("[data-wx]") && ($("[data-wx]").onclick = closeWiz);
+    var bk = $("[data-wb]"); if (bk) bk.onclick = function () { wiz.step--; renderWiz(); };
+    $$("[data-type]").forEach(function (o) { o.onclick = function () { wiz.type = o.getAttribute("data-type"); renderWiz(); }; });
+    $$("[data-sc]").forEach(function (c) { c.onchange = function () { wiz.scope[c.getAttribute("data-sc")][c.getAttribute("data-si")] = c.checked; }; });
+    $$("[data-pp]").forEach(function (c) { c.onchange = function () { wiz.params[c.getAttribute("data-pp")] = c.checked; }; });
+    $$("[data-ch]").forEach(function (c) { c.onchange = function () { wiz.channels[c.getAttribute("data-ch")] = c.checked; }; });
+    $$("[data-ak]").forEach(function (c) { c.onchange = function () { wiz.auth[c.getAttribute("data-ak")] = c.checked; checkAuth(); }; });
+    var wi = $("#wizInt"); if (wi) wi.oninput = function () { wiz.params.intensity = +wi.value; $("#ivLabel").textContent = ["Passive", "Light", "Standard", "Aggressive", "Maximum"][wi.value - 1]; };
+    var cc = $("#wizCc"); if (cc) cc.oninput = function () { wiz.params.concurrency = +cc.value; $("#ccLabel").textContent = cc.value; };
+    var ww = $("#wizWin"); if (ww) ww.onchange = function () { wiz.params.window = ww.value; };
+    var wo = $("#wizOps"); if (wo) wo.onchange = function () { wiz.params.opsec = wo.value; };
+    $("#wizNext").onclick = function () {
+      var label = steps[wiz.step];
+      if (label === "Authorization" && !(wiz.auth.a && wiz.auth.b && wiz.auth.c)) { $("#wizWarn").textContent = "All authorization confirmations are required."; return; }
+      if (wiz.step === steps.length - 1) { closeWiz(); runCampaign(); return; }
+      wiz.step++; renderWiz();
+    };
+    checkAuth();
+  }
+  function checkAuth() { var w = $("#wizWarn"); if (w && wizSteps()[wiz.step] === "Authorization") w.textContent = (wiz.auth.a && wiz.auth.b && wiz.auth.c) ? "" : "All authorization confirmations are required."; }
+
+  /* ============================ LIVE OPS CONSOLE ============================ */
+  function runCampaign() {
+    var t = TYPES.filter(function (x) { return x.k === wiz.type; })[0];
+    var cid = "CMP-" + (2045 + state.campaigns.length);
+    var phases = wiz.type === "social"
+      ? [["Roster sync", "consented targets loaded"], ["Pretext build", "narrative generated"], ["Email wave", "lures dispatched"], ["Multichannel", "SMS, voice, deepfake escalation"], ["Engagement scoring", "click, report, credential"], ["Report", "human risk index sealed"]]
+      : [["Reconnaissance", "mapping connected scope"], ["Enumeration", "services and identities"], ["Exploitation", "candidate vulnerabilities"], ["Validation", "deterministic sandbox replay"], ["Lateral movement", "pivot across the stack"], ["Privilege escalation", "path to crown jewels"], ["Impact and exfil sim", "prove reach, no loss"], ["Compliance and report", "map and seal evidence"]];
+    var ops = $("#ops");
+    ops.innerHTML =
+      '<div class="ops-top"><span class="ot-id">' + cid + '</span><h3>' + t.n + '</h3>' +
+      '<span class="live">LIVE ENGAGEMENT</span><div class="topbar-spacer"></div>' +
+      '<span class="clock" id="opClock">00:00</span><button class="btn-mini ghost sm" id="opStop">Stop safely</button></div>' +
+      '<div class="ops-grid"><div class="ops-col"><div class="ops-h">Engagement phases</div><div id="opPhases"></div></div>' +
+      '<div class="ops-col mid"><div class="ops-h">Agent telemetry</div><div class="term" id="opTerm"></div></div>' +
+      '<div class="ops-col"><div class="ops-h">Live metrics</div>' +
+      '<div class="ops-metric"><div class="ml">Agents active</div><div class="mv" id="opAgents">0</div></div>' +
+      '<div class="ops-metric"><div class="ml">Hosts touched</div><div class="mv" id="opHosts">0</div></div>' +
+      '<div class="ops-metric"><div class="ml">Findings proven</div><div class="mv" id="opFind">0</div></div>' +
+      '<div class="ops-h" style="margin-top:8px">New findings</div><div id="opFindList"></div></div></div>' +
+      '<div class="ops-foot"><span class="ot-id">PROGRESS</span><div class="bar"><i id="opBar" style="width:0%"></i></div><span class="pct" id="opPct">0%</span></div>';
+    ops.classList.add("open");
+    $("#opPhases").innerHTML = phases.map(function (p, i) {
+      return '<div class="phase idle" id="ph' + i + '"><div class="pi">' + (i + 1) + '</div><div><div class="pn">' + p[0] + '</div><div class="pd">' + p[1] + '</div></div></div>';
+    }).join("");
+
+    var newFindings = wiz.type === "social" ? [] : pickFindings(wiz.type);
+    var term = $("#opTerm"), t0 = Date.now(), stopped = false;
+    var clockIv = setInterval(function () {
+      var s = Math.floor((Date.now() - t0) / 1000);
+      $("#opClock").textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+    }, 1000);
+    function log(cls, txt) {
+      var d = document.createElement("div");
+      var ts = new Date().toLocaleTimeString([], { hour12: false });
+      d.className = cls || "";
+      d.innerHTML = '<span class="ts">' + ts + '</span> ' + txt;
+      term.appendChild(d); term.scrollTop = term.scrollHeight;
+      while (term.children.length > 220) term.removeChild(term.firstChild);
+    }
+    var agents = 0, hosts = 0, found = 0, pi = 0, fidx = 0;
+    var lines = [
+      ['<span class="ag">agent.recon</span> sweeping scope, ' + (wiz.params.concurrency) + ' agents dispatched'],
+      ['<span class="ag">agent.recon</span> 1,284 assets fingerprinted'],
+      ['<span class="ag">agent.network</span> service enumeration on internal subnet'],
+      ['<span class="ag">agent.cloud</span> auditing IAM roles and bucket policies'],
+      ['<span class="ag">agent.identity</span> probing Kerberos and delegation'],
+      ['<span class="ag">agent.web</span> fuzzing settlement state machine'],
+      ['<span class="gd">validator</span> reproducing candidate in isolated sandbox'],
+      ['<span class="ag">agent.identity</span> credential recovered, pivoting'],
+      ['<span class="ag">agent.lateral</span> moved into 10.4.12.0/24'],
+      ['<span class="cr">agent.privesc</span> unconstrained delegation, Domain Admin in reach'],
+      ['<span class="gd">compliance.map</span> tagging finding to NIST and Cyber Trust'],
+      ['<span class="ag">agent.exfil</span> reach proven, no data removed, standing down']
+    ];
+    var step = setInterval(function () {
+      if (stopped) return;
+      for (var b = 0; b < 2; b++) log("", lines[(pi + b) % lines.length][0]);
+      agents = Math.min(wiz.params.concurrency, agents + Math.ceil(Math.random() * 14));
+      hosts += Math.ceil(Math.random() * 9);
+      $("#opAgents").textContent = agents; $("#opHosts").textContent = hosts;
+      var phn = Math.floor((pi / lines.length) * phases.length);
+      for (var k = 0; k <= phn && k < phases.length; k++) {
+        var pe = $("#ph" + k); pe.className = "phase " + (k < phn ? "done" : "run");
+        pe.querySelector(".pi").innerHTML = k < phn ? "&#10003;" : (k + 1);
+      }
+      if (pi === 4 || pi === 7 || pi === 9) {
+        if (fidx < newFindings.length) {
+          var nf = newFindings[fidx++]; found++; $("#opFind").textContent = found;
+          log("ok", '<span class="ok">[proven]</span> ' + nf.id + ' ' + esc(nf.t));
+          var box = $("#opFindList"), el = document.createElement("div");
+          el.className = "mini-find";
+          el.innerHTML = '<div class="mf-t"><span class="mf-id">' + nf.id + '</span>' + sevTag(nf.sev) + '</div>' + esc(nf.t);
+          box.insertBefore(el, box.firstChild);
+        }
+      }
+      var pct = Math.min(100, Math.round(((pi + 1) / lines.length) * 100));
+      $("#opBar").style.width = pct + "%"; $("#opPct").textContent = pct + "%";
+      pi++;
+      if (pi >= lines.length) { clearInterval(step); finish(); }
+    }, 850);
+
+    function finish() {
+      $$(".phase").forEach(function (p) { p.className = "phase done"; p.querySelector(".pi").innerHTML = "&#10003;"; });
+      log("ok", '<span class="ok">[complete]</span> engagement finished, evidence pack sealed');
+      clearInterval(clockIv);
+      var crit = newFindings.filter(function (f) { return f.sev === "Critical"; }).length;
+      var high = newFindings.filter(function (f) { return f.sev === "High"; }).length;
+      state.findings = newFindings.concat(state.findings);
+      state.campaigns.unshift({ id: cid, name: t.n, type: t.n.split(" ")[0], scope: t.scope ? "Selected scope" : "", status: "Completed", prog: 100, started: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) + " " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), dur: $("#opClock").textContent + " min", crit: crit, high: high, med: 0 });
+      state.posture = Math.max(50, state.posture - 1);
+      var foot = $(".ops-foot");
+      foot.innerHTML = '<span class="ot-id" style="color:#3FB984">ENGAGEMENT COMPLETE</span><div class="topbar-spacer"></div>' +
+        '<button class="btn-mini ghost sm" id="opClose">Close</button><button class="btn-mini" id="opReport">Open campaign report</button>';
+      $("#opClose").onclick = function () { ops.classList.remove("open"); route(); };
+      $("#opReport").onclick = function () { ops.classList.remove("open"); location.hash = "#/campaign/" + cid; toast("Campaign complete", cid + ": " + crit + " critical, " + high + " high, all proven and mapped."); };
+    }
+    $("#opStop").onclick = function () {
+      stopped = true; clearInterval(step); clearInterval(clockIv);
+      log("cr", '<span class="cr">[stopped]</span> operator halt, standing down safely');
+      setTimeout(finish, 600);
+    };
+  }
+  function pickFindings(type) {
+    var base = [
+      { id: "F-34" + rnd(), t: "Over scoped CI token enables cross namespace write", sev: "Critical", surf: "Supply chain", att: "T1078 / T1552", cvss: 8.7, cmp: "", d: "A long lived CI token discovered during this campaign grants write access across three production namespaces.", poc: "$ curl -H 'Authorization: Bearer <span class='gd'>[recovered]</span>' ...\n<span class='ok'>[+] Cross namespace write proven in sandbox.</span>", fix: "Short lived OIDC tokens scoped per pipeline, rotate and alert on reuse.", fw: ["NIST PR.AC-4", "CIS 16", "ATT&CK T1552"] },
+      { id: "F-34" + rnd(), t: "SMB signing disabled enables relay to file server", sev: "High", surf: "Network", att: "T1557.001", cvss: 7.4, cmp: "", d: "SMB signing is not enforced, allowing an NTLM relay to a sensitive file server.", poc: "<span class='ok'>[+] Relayed to FS01, read access proven, not exfiltrated.</span>", fix: "Enforce SMB signing, segment, disable NTLM where possible.", fw: ["NIST PR.PT", "ISO A.8.20", "ATT&CK T1557"] },
+      { id: "F-34" + rnd(), t: "Exposed Redis without auth on internal subnet", sev: "High", surf: "Application / API", att: "T1190", cvss: 7.1, cmp: "", d: "An unauthenticated Redis instance allows config writes and a path to RCE.", poc: "$ redis-cli -h 10.4.7.21 CONFIG GET dir\n<span class='ok'>[+] Write primitive proven, contained in sandbox.</span>", fix: "Require auth, bind to localhost, network policy, patch.", fw: ["NIST PR.AC-3", "CIS 4", "ATT&CK T1190"] }
+    ];
+    return base.slice(0, type === "external" || type === "app" ? 2 : 3);
+  }
+  function rnd() { return String(10 + Math.floor(Math.random() * 89)); }
+
+  /* ============================ GLUE ============================ */
+  function bindClicks() {
+    $$("tr.clk[data-f], .clk[data-f]").forEach(function (r) { r.onclick = function () { openFinding(r.getAttribute("data-f")); }; });
+    $$("tr.clk[data-a]").forEach(function (r) { r.onclick = function () { openAsset(+r.getAttribute("data-a")); }; });
+    $$("tr.clk[data-c]").forEach(function (r) { r.onclick = function () { location.hash = "#/campaign/" + r.getAttribute("data-c"); }; });
+    $$("[data-go]").forEach(function (b) { b.onclick = function () { location.hash = "#/" + b.getAttribute("data-go"); }; });
+    $$("[data-export]").forEach(function (b) { b.onclick = function () { var n = b.getAttribute("data-export"); toast("Export ready", n + " generated from sealed evidence."); fakeDl(n); }; });
+    $$("[data-toast]").forEach(function (b) { b.onclick = function () { var p = b.getAttribute("data-toast").split("|"); toast(p[0], p[1]); }; });
+    $$("[data-x]").forEach(function (b) { b.onclick = closeDrawer; });
+    var lb2 = $("#launchBtn2"); if (lb2) lb2.onclick = openWiz;
+    var lb3 = $("#launchBtn3"); if (lb3) lb3.onclick = openWiz;
+    var chips = $("#sevChips");
+    if (chips) $$(".chip", chips).forEach(function (c) {
+      c.onclick = function () { $$(".chip", chips).forEach(function (x) { x.classList.remove("on"); }); c.classList.add("on"); fillFindings(c.getAttribute("data-s")); };
     });
-    $("#scrim").onclick = closeDrawer;
-    $("#launchBtn").onclick = launchModal;
-    $("#launchBtn2") && ($("#launchBtn2").onclick = launchModal);
-    $("#modalScrim").onclick = function (e) {
-      if (e.target === $("#modalScrim")) $("#modalScrim").classList.remove("open");
-    };
-    $("#modalX").onclick = function () { $("#modalScrim").classList.remove("open"); };
-    $("#logout").onclick = function () {
-      try { sessionStorage.removeItem("cherubim_demo"); } catch (e) {}
-      location.href = "../login.html";
-    };
-    var mb = $("#menuBtn");
-    if (mb) mb.onclick = function () { $("#side").classList.toggle("open"); };
-  });
-
-  function fakeDownload(name, text) {
+  }
+  function toast(title, msg) {
+    var t = document.createElement("div");
+    t.className = "toast"; t.innerHTML = "<b>" + title + "</b><br>" + msg;
+    $("#toasts").appendChild(t);
+    setTimeout(function () { t.style.transition = "opacity .4s"; t.style.opacity = "0"; setTimeout(function () { t.remove(); }, 400); }, 4400);
+  }
+  function fakeDl(name) {
     try {
-      var a = document.createElement("a");
-      a.href = "data:text/plain;charset=utf-8," + encodeURIComponent(text.replace(/\\n/g, "\n"));
-      a.download = name; a.click();
+      var a = document.createElement("a"), body = "Cherubim export: " + name + "\nOrganisation: " + ORG + "\nGenerated: " + new Date().toISOString() + "\nPosture " + state.posture + "/100, findings deterministically validated.\nThis is simulated demo content.";
+      a.href = "data:text/plain;charset=utf-8," + encodeURIComponent(body);
+      a.download = name.toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".txt"; a.click();
     } catch (e) {}
   }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    route();
+    window.addEventListener("hashchange", route);
+    $$(".nav-item").forEach(function (n) { n.onclick = function () { location.hash = "#/" + n.getAttribute("data-r"); }; });
+    $("#launchBtn").onclick = openWiz;
+    $("#scrim").onclick = closeDrawer;
+    $("#wizScrim").onclick = function (e) { if (e.target === $("#wizScrim")) closeWiz(); };
+    var um = $("#userMenu"), up = $("#userPop");
+    um.onclick = function (e) { e.stopPropagation(); up.classList.toggle("open"); };
+    document.addEventListener("click", function () { up.classList.remove("open"); });
+    $("#logout").onclick = function () { try { sessionStorage.removeItem("cherubim_demo"); } catch (e) {} location.href = "../login.html"; };
+    var mb = $("#menuBtn"); if (mb) mb.onclick = function () { $("#side").classList.toggle("open"); };
+    var gs = $("#globalSearch");
+    if (gs) gs.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && gs.value.trim()) { toast("Search", 'No exact match for "' + esc(gs.value.trim()) + '" in demo data. Try Findings or Attack surface.'); }
+    });
+  });
 })();
