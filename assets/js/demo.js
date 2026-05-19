@@ -547,6 +547,15 @@
     }
     if (label === "Scope and targets") {
       var t = TYPES.filter(function (x) { return x.k === wiz.type; })[0];
+      if (wiz.type === "social") {
+        return '<h4>Roster and targets</h4><p class="sub">Choose which people are in scope. Everyone else is excluded. Targeting respects consent and opt out lists.</p>' +
+          '<div class="frm"><label>people rosters</label><div class="scope-list">' + SCOPE_ASSETS.people.map(function (a, i) {
+            return '<label class="scope-row"><input type="checkbox" data-sc="people" data-si="' + i + '" ' + (wiz.scope.people[i] ? "checked" : "") + '> ' + a + '<span class="sm">roster</span></label>';
+          }).join("") + '</div></div>' +
+          '<div class="frm"><label>Add named targets (optional)</label><input type="text" id="wizCidr" placeholder="email or staff ID, comma separated"></div>' +
+          '<div class="frm"><label>Exclusions (always honoured)</label><input type="text" id="wizExcl" value="Board members, staff on leave, prior opt outs"></div>' +
+          '<div class="frm"><label>Consent and care</label><input type="text" value="Cloned personas need explicit consent. Campaign stands down on distress." readonly></div>';
+      }
       return '<h4>Scope and targets</h4><p class="sub">Pick exactly what is in scope. Everything else is excluded by default.</p>' +
         t.scope.map(function (g) {
           return '<div class="frm"><label>' + g + '</label><div class="scope-list">' + SCOPE_ASSETS[g].map(function (a, i) {

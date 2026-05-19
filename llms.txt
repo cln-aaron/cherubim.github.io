@@ -1,0 +1,41 @@
+# Cherubim
+
+> Cherubim is an agentic AI red team that runs automated penetration testing
+> across the entire cybersecurity stack and orchestrated omnichannel social
+> engineering, then proves every finding and maps it to compliance frameworks.
+
+Cherubim is a product of Hesed & Emet Advisory, a Singapore advisory working
+where AI, cybersecurity and human behaviour collide. It is a sibling product
+to Aegis, the same company's AI security operations platform.
+
+## What Cherubim does
+
+- Autonomous offensive engine: a swarm of reasoning agents that maps,
+  exploits and chains weaknesses, with deterministic validation so no
+  finding ships without reproducible proof.
+- Full stack attack coverage: external and internal network, web, API,
+  mobile, cloud, Kubernetes, identity, Active Directory, wireless, OT and
+  supply chain, run as one continuous kill chain.
+- Orchestrated omnichannel social engineering: phishing email, SMS,
+  WhatsApp, voice cloning, live deepfake video on Zoom, Teams and Meet,
+  and Slack and Teams follow up, under one adaptive narrative.
+- Compliance and reporting: one click mapping to NIST CSF 2.0 and SP
+  800-53, the Singapore Cybersecurity Act, the CSA Cyber Trust and Cyber
+  Essentials marks, ISO/IEC 27001, MAS TRM, PDPA, MITRE ATT&CK and CIS
+  Controls, plus board, CISO, engineering and audit reporting views.
+
+## Key facts
+
+- Category: agentic AI red team, automated penetration testing, adversary
+  simulation, social engineering simulation.
+- Differentiator: deterministic validation, no proof means no finding.
+- Safety: signed authorization gate, consent for cloned personas,
+  stand down on distress, watermarked synthetic media, never causes real
+  loss.
+- Region: Singapore and Asia Pacific.
+- Contact: hello@hesedemet.asia
+
+## Links
+
+- Site: https://cherubim.github.io/
+- Parent advisory: https://www.hesedemet.asia
