@@ -20,6 +20,13 @@ campaign:
 Findings are delivered with truth for the board and kindness for the people who
 were tested, the principle behind the Hesed (mercy) and Emet (truth) name.
 
+**Compliance and reporting.** Every validated finding is mapped in real time to
+NIST CSF 2.0 and SP 800-53, the Singapore Cybersecurity Act, the CSA Cyber
+Trust and Cyber Essentials marks, ISO/IEC 27001, MAS TRM, PDPA, MITRE ATT&CK,
+and CIS Controls, then assembled into a one click auditor ready evidence pack.
+Executive reporting produces board, CISO, engineering, and audit views from one
+source of truth.
+
 ## Stack
 
 Static site for GitHub Pages. No build step.
