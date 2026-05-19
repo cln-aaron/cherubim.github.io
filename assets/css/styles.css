@@ -84,9 +84,9 @@ img,svg{display:block;max-width:100%}
   background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
   background-size:90px 90px;mask-image:radial-gradient(circle at 50% 35%,#000,transparent 70%);opacity:.7}
 .hero-inner{position:relative}
-.kinetic{font-size:clamp(46px,9vw,148px);color:var(--paper);margin-bottom:40px;letter-spacing:-.045em}
-.kinetic .line{display:block;overflow:hidden}
-.kinetic .line>span{display:block;transform:translateY(105%);transition:transform 1s var(--ease)}
+.kinetic{font-size:clamp(46px,9vw,148px);color:var(--paper);margin-bottom:40px;letter-spacing:-.045em;line-height:1.04}
+.kinetic .line{display:block;overflow:hidden;padding-bottom:.16em;margin-bottom:-.16em}
+.kinetic .line>span{display:block;transform:translateY(110%);transition:transform 1s var(--ease)}
 .kinetic.in .line>span{transform:translateY(0)}
 .kinetic .line:nth-child(2)>span{transition-delay:.12s}
 .kinetic .line:nth-child(3)>span{transition-delay:.24s}
@@ -105,10 +105,10 @@ img,svg{display:block;max-width:100%}
 /* Marquee */
 .marquee{position:relative;z-index:2;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
   background:var(--gold);color:#0a0700;overflow:hidden;padding:18px 0}
-.marquee-track{display:flex;gap:36px;white-space:nowrap;width:max-content;
-  font-family:"Fraunces",serif;font-size:30px;font-style:italic;animation:scroll 26s linear infinite}
-.marquee-track span{font-style:italic}
-.marquee-track b{font-style:normal}
+.marquee-track{display:flex;align-items:center;gap:30px;white-space:nowrap;width:max-content;
+  font-family:"JetBrains Mono",ui-monospace,monospace;font-size:14px;font-weight:500;
+  letter-spacing:.26em;text-transform:uppercase;animation:scroll 32s linear infinite}
+.marquee-track b{font-size:11px;opacity:.55}
 .marquee:hover .marquee-track{animation-play-state:paused}
 @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 

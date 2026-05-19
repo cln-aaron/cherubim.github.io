@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Console | Cherubim Demo</title>
+<meta name="robots" content="noindex" />
+<meta name="theme-color" content="#070A12" />
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/css/styles.css" />
+<link rel="stylesheet" href="../assets/css/app.css" />
+</head>
+<body class="app-body">
+<div class="demo-banner">Guided demo environment &middot; simulated data for <b>Northwind Capital</b> &middot; <a href="../index.html">back to site</a></div>
+
+<div class="app">
+  <aside class="side" id="side">
+    <a class="brand" href="../index.html">
+      <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 13c-4.2-3.4-9.4-4.8-15-4 1.9 2.6 2.7 4.7 2.7 7.6m12.3-.6c-5.4-2.3-10.1-2.1-14.2.6 2 2.1 2.9 4.2 3 7.1m11.2-1.3c-4.4-.4-8.1.7-11.1 3.3 1.3 1.8 2 3.8 2.1 6.2"/>
+          <path d="M25 13c4.2-3.4 9.4-4.8 15-4-1.9 2.6-2.7 4.7-2.7 7.6m-12.3-.6c5.4-2.3 10.1-2.1 14.2.6-2 2.1-2.9 4.2-3 7.1m-11.2-1.3c4.4-.4 8.1.7 11.1 3.3-1.3 1.8-2 3.8-2.1 6.2"/>
+          <path d="M24 9.5c2.8 2.2 6 3.3 9.6 3.5.2 9.4-3.6 17.4-9.6 22.2-6-4.8-9.8-12.8-9.6-22.2 3.6-.2 6.8-1.3 9.6-3.5z"/>
+        </g>
+        <path d="M24 16.5l1.7 4.8 4.8 1.7-4.8 1.7L24 29.5l-1.7-4.8-4.8-1.7 4.8-1.7z" fill="currentColor"/>
+      </svg>
+      <span>Cherubim</span>
+    </a>
+
+    <div class="side-group">
+      <p>Operate</p>
+      <button class="nav-item" data-r="overview">Command center</button>
+      <button class="nav-item" data-r="surface">Attack surface</button>
+      <button class="nav-item" data-r="campaigns">Campaigns</button>
+      <button class="nav-item" data-r="paths">Attack paths</button>
+    </div>
+    <div class="side-group">
+      <p>Evidence</p>
+      <button class="nav-item" data-r="findings">Findings</button>
+      <button class="nav-item" data-r="social">Social engineering</button>
+      <button class="nav-item" data-r="compliance">Compliance</button>
+      <button class="nav-item" data-r="report">Executive report</button>
+    </div>
+    <div class="side-foot">v3.4 &middot; guardian console<br/>connected &middot; 7 surfaces</div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="Menu">&#9776;</button>
+      <div class="org"><span class="dot"></span> Northwind Capital</div>
+      <span class="pill">Demo environment</span>
+      <div class="topbar-spacer"></div>
+      <button class="btn-mini" id="launchBtn">Launch campaign</button>
+      <div class="user" id="logout" title="Sign out">
+        <div class="avatar">DA</div><span>Sign out</span>
+      </div>
+    </header>
+
+    <section class="view active" id="v-overview"></section>
+    <section class="view" id="v-surface"></section>
+    <section class="view" id="v-campaigns"></section>
+    <section class="view" id="v-paths"></section>
+    <section class="view" id="v-findings"></section>
+    <section class="view" id="v-social"></section>
+    <section class="view" id="v-compliance"></section>
+    <section class="view" id="v-report"></section>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer"><div id="drawerBody"></div></aside>
+
+<div class="modal-scrim" id="modalScrim">
+  <div class="modal">
+    <button class="x" id="modalX" style="position:absolute;top:18px;right:18px;background:none;border:1px solid var(--line-soft);color:var(--muted);width:32px;height:32px;border-radius:50%;cursor:pointer">&times;</button>
+    <h3>Launch a campaign</h3>
+    <p class="sub">Select scope. Cherubim will run autonomous agents, validate every finding, and map results to your frameworks.</p>
+    <label class="opt on"><input type="checkbox" checked /> Full stack assumed breach</label>
+    <label class="opt on"><input type="checkbox" checked /> Network, cloud, and identity</label>
+    <label class="opt"><input type="checkbox" /> Omnichannel social engineering</label>
+    <label class="opt"><input type="checkbox" checked /> Generate compliance evidence pack</label>
+    <div class="modal-actions">
+      <button class="btn-mini" id="runGo">Launch campaign</button>
+    </div>
+    <div class="run-prog" id="runProg">
+      <div class="bar"><i id="runBar" style="width:0%"></i></div>
+      <div class="run-log" id="runLog"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script src="../assets/js/demo.js"></script>
+</body>
+</html>
