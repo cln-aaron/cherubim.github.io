@@ -495,7 +495,23 @@
   var wiz = { step: 0, type: null, scope: {}, params: {}, channels: {}, auth: {} };
 
   function openWiz() {
-    wiz = { step: 0, type: "assumed", scope: {}, params: { intensity: 3, concurrency: 80, window: "Off hours (18:00-06:00 SGT)", opsec: "Balanced", exploit: true, lateral: true, exfilsim: true, persist: false }, channels: { email: true, sms: true, voice: false, deepfake: false, slack: true }, auth: {} };
+    wiz = { step: 0, type: "assumed", scope: {},
+      params: { intensity: 3, concurrency: 80, window: "Off hours (18:00-06:00 SGT)", opsec: "Balanced", exploit: true, lateral: true, exfilsim: true, persist: false },
+      sparams: { rate: 40, aggr: 2, window: "Business hours (target local)", distress: true, credpage: true, payload: false, trainredirect: true },
+      channels: { email: true, sms: true, voice: false, deepfake: false, slack: true },
+      pretext: {
+        theme: "Finance, urgent payment approval",
+        sender: "accounts.payable@northwlnd-finance.com",
+        display: "Northwind Accounts Payable",
+        brand: "Northwind Capital",
+        subject: "Action required: payment release held for approval",
+        body: "Hi {{first_name}},\n\nA vendor payment of SGD 48,200 is on hold pending your approval before 5pm today. Please review and authorise via the secure portal below.\n\nThis is time sensitive, the vendor has flagged a service interruption.\n\nFinance Operations",
+        sms: "Northwind Finance: a payment approval is pending in your name. Review: nw-secure-approvals.com/r/4F2A",
+        landing: "Microsoft 365 single sign on",
+        voice: false, voiceScript: "Hi, this is Marcus from Finance Ops. The approval portal is timing out on my side, could you confirm the one time code you just received so I can release the vendor payment before the cutoff?",
+        deepfake: false, persona: "CFO, Lena Tan (consented, watermarked)"
+      },
+      auth: {} };
     SCOPE_ASSETS.network.forEach(function () {});
     Object.keys(SCOPE_ASSETS).forEach(function (g) { wiz.scope[g] = {}; SCOPE_ASSETS[g].forEach(function (a, i) { wiz.scope[g][i] = (g !== "people"); }); });
     $("#wizScrim").classList.add("open");
@@ -505,7 +521,7 @@
 
   function wizSteps() {
     var s = ["Type", "Scope and targets", "Parameters"];
-    if (wiz.type === "social") s.push("Channels");
+    if (wiz.type === "social") { s.push("Channels"); s.push("Pretext studio"); }
     s.push("Authorization"); s.push("Review");
     return s;
   }
@@ -541,6 +557,19 @@
         '<div class="frm"><label>Exclusions (always honoured)</label><input type="text" id="wizExcl" value="*.legacy.northwind.io, 10.4.99.0/24 (OT)"></div>';
     }
     if (label === "Parameters") {
+      if (wiz.type === "social") {
+        var sp = wiz.sparams;
+        return '<h4>Engagement parameters</h4><p class="sub">Social campaigns never cause real loss. Tune pace, realism, and the safety guardrails.</p>' +
+          '<div class="frm"><label>Send rate <span class="range-val" id="srLabel">' + sp.rate + ' targets / hour</span></label><input type="range" id="wizSr" min="10" max="120" step="10" value="' + sp.rate + '"></div>' +
+          '<div class="frm"><label>Narrative aggressiveness <span class="range-val" id="saLabel">' + ["Soft", "Standard", "Assertive", "High pressure"][sp.aggr - 1] + '</span></label><input type="range" id="wizSa" min="1" max="4" value="' + sp.aggr + '"></div>' +
+          '<div class="frm"><label>Delivery window</label><select id="wizSw"><option ' + sel(sp.window, "Business hours (target local)") + '>Business hours (target local)</option><option ' + sel(sp.window, "Lunch peak (11:30-13:30)") + '>Lunch peak (11:30-13:30)</option><option ' + sel(sp.window, "End of day (16:00-18:00)") + '>End of day (16:00-18:00)</option></select></div>' +
+          [['distress', 'Stand down on distress', 'Halt a target the moment they show distress'],
+           ['credpage', 'Credential capture page', 'Record that a credential was entered, never store it'],
+           ['payload', 'Benign attachment payload', 'Track open and macro enable, inert by design'],
+           ['trainredirect', 'Just in time coaching', 'Redirect to a short lesson the instant someone falls']].map(function (p) {
+            return '<div class="toggle-row"><div>' + p[1] + '<small>' + p[2] + '</small></div><label class="sw"><input type="checkbox" data-sp="' + p[0] + '" ' + (sp[p[0]] ? "checked" : "") + '><span class="tk"></span></label></div>';
+          }).join("");
+      }
       var iv = wiz.params.intensity;
       return '<h4>Engagement parameters</h4><p class="sub">Tune aggression, concurrency, and which techniques are permitted.</p>' +
         '<div class="frm"><label>Attack intensity <span class="range-val" id="ivLabel">' + ["Passive", "Light", "Standard", "Aggressive", "Maximum"][iv - 1] + '</span></label><input type="range" id="wizInt" min="1" max="5" value="' + iv + '"></div>' +
@@ -554,6 +583,7 @@
           return '<div class="toggle-row"><div>' + p[1] + '<small>' + p[2] + '</small></div><label class="sw"><input type="checkbox" data-pp="' + p[0] + '" ' + (wiz.params[p[0]] ? "checked" : "") + '><span class="tk"></span></label></div>';
         }).join("");
     }
+    if (label === "Pretext studio") return pretextStudio();
     if (label === "Channels") {
       return '<h4>Social engineering channels</h4><p class="sub">Orchestrated under one narrative. The engine escalates only on engagement.</p>' +
         [['email', 'Phishing email', 'Context aware lures from open source signals'],
@@ -578,17 +608,78 @@
     // Review
     var t2 = TYPES.filter(function (x) { return x.k === wiz.type; })[0];
     var scopeCount = 0; Object.keys(wiz.scope).forEach(function (g) { Object.keys(wiz.scope[g]).forEach(function (i) { if (wiz.scope[g][i] && t2.scope.indexOf(g) >= 0) scopeCount++; }); });
-    return '<h4>Review and launch</h4><p class="sub">Confirm the engagement. Cherubim will run autonomously and prove every finding.</p><div class="review">' +
-      ri("Campaign type", t2.n) + ri("Scope items", scopeCount + " selected") +
-      ri("Intensity", ["Passive", "Light", "Standard", "Aggressive", "Maximum"][wiz.params.intensity - 1]) +
-      ri("Concurrency", wiz.params.concurrency + " agents") + ri("Window", wiz.params.window) + ri("OPSEC", wiz.params.opsec) +
-      ri("Exploitation", wiz.params.exploit ? "Permitted, sandboxed" : "Disabled") +
-      ri("Lateral movement", wiz.params.lateral ? "Permitted" : "Disabled") +
-      (wiz.type === "social" ? ri("Channels", Object.keys(wiz.channels).filter(function (k) { return wiz.channels[k]; }).join(", ")) : "") +
-      ri("Owner", "D. Aron, CISO") + ri("Authorization", "AUTH-2026-0519-NW") + '</div>';
+    var rows = ri("Campaign type", t2.n) + ri("Scope items", scopeCount + " selected");
+    if (wiz.type === "social") {
+      var ch = Object.keys(wiz.channels).filter(function (k) { return wiz.channels[k]; });
+      rows += ri("Send rate", wiz.sparams.rate + " / hour") +
+        ri("Narrative", ["Soft", "Standard", "Assertive", "High pressure"][wiz.sparams.aggr - 1]) +
+        ri("Window", wiz.sparams.window) +
+        ri("Channels", ch.join(", ") || "none") +
+        ri("Pretext", wiz.pretext.theme) +
+        ri("Lookalike sender", wiz.pretext.sender) +
+        ri("Landing page", wiz.pretext.landing) +
+        ri("Cloned voice", wiz.channels.voice && wiz.pretext.voice ? "Attached, consented" : "Not used") +
+        ri("Live deepfake", wiz.channels.deepfake && wiz.pretext.deepfake ? wiz.pretext.persona : "Not used") +
+        ri("Safe mode", "Stand down on distress, no real loss");
+    } else {
+      rows += ri("Intensity", ["Passive", "Light", "Standard", "Aggressive", "Maximum"][wiz.params.intensity - 1]) +
+        ri("Concurrency", wiz.params.concurrency + " agents") + ri("Window", wiz.params.window) + ri("OPSEC", wiz.params.opsec) +
+        ri("Exploitation", wiz.params.exploit ? "Permitted, sandboxed" : "Disabled") +
+        ri("Lateral movement", wiz.params.lateral ? "Permitted" : "Disabled") +
+        ri("Exfiltration sim", wiz.params.exfilsim ? "Prove reach, no loss" : "Disabled");
+    }
+    rows += ri("Owner", "D. Aron, CISO") + ri("Authorization", "AUTH-2026-0519-NW");
+    return '<h4>Review and launch</h4><p class="sub">Confirm the engagement. Cherubim will run autonomously and prove every finding.</p><div class="review">' + rows + '</div>';
   }
   function ri(k, v) { return '<div class="ri"><span>' + k + '</span><b>' + v + '</b></div>'; }
   function sel(cur, val) { return cur === val ? "selected" : ""; }
+
+  function pretextStudio() {
+    var p = wiz.pretext;
+    var act = Object.keys(wiz.channels).filter(function (k) { return wiz.channels[k]; });
+    return '<h4>Pretext studio</h4><p class="sub">Craft the exact lure your people will see. Edit on the left, preview updates live on the right.</p>' +
+      '<div class="ps">' +
+      '<div class="ps-edit">' +
+        '<div class="frm"><label>Scenario theme</label><select id="psTheme"><option ' + sel(p.theme, "Finance, urgent payment approval") + '>Finance, urgent payment approval</option><option ' + sel(p.theme, "IT, MFA re-enrolment") + '>IT, MFA re-enrolment</option><option ' + sel(p.theme, "HR, benefits update") + '>HR, benefits update</option><option ' + sel(p.theme, "Executive, confidential acquisition") + '>Executive, confidential acquisition</option></select></div>' +
+        '<div class="frm"><label>Sender display name</label><input type="text" id="psDisp" value="' + esc(p.display) + '"></div>' +
+        '<div class="frm"><label>Sender address (lookalike domain)</label><input type="text" id="psFrom" value="' + esc(p.sender) + '"></div>' +
+        (wiz.channels.email ? '<div class="frm"><label>Email subject</label><input type="text" id="psSubj" value="' + esc(p.subject) + '"></div>' +
+        '<div class="frm"><label>Email body <span class="range-val">{{first_name}} token supported</span></label><textarea id="psBody" rows="6">' + esc(p.body) + '</textarea></div>' : '') +
+        (wiz.channels.sms ? '<div class="frm"><label>SMS / WhatsApp text</label><textarea id="psSms" rows="2">' + esc(p.sms) + '</textarea></div>' : '') +
+        '<div class="frm"><label>Capture landing page</label><select id="psLand"><option ' + sel(p.landing, "Microsoft 365 single sign on") + '>Microsoft 365 single sign on</option><option ' + sel(p.landing, "Okta login") + '>Okta login</option><option ' + sel(p.landing, "Northwind VPN portal") + '>Northwind VPN portal</option><option ' + sel(p.landing, "Vendor invoice portal") + '>Vendor invoice portal</option></select></div>' +
+        (wiz.channels.voice ? '<div class="ps-asset"><div class="toggle-row"><div>Attach cloned voice<small>Consented clone of an authorised internal persona</small></div><label class="sw"><input type="checkbox" id="psVoice" ' + (p.voice ? "checked" : "") + '><span class="tk"></span></label></div><div class="frm" id="psVoiceWrap" style="' + (p.voice ? "" : "display:none") + '"><label>Voice call script</label><textarea id="psVScript" rows="3">' + esc(p.voiceScript) + '</textarea></div></div>' : '') +
+        (wiz.channels.deepfake ? '<div class="ps-asset"><div class="toggle-row"><div>Attach live deepfake persona<small>Watermarked, consent on file, joins a scheduled call</small></div><label class="sw"><input type="checkbox" id="psDf" ' + (p.deepfake ? "checked" : "") + '><span class="tk"></span></label></div><div class="frm" id="psDfWrap" style="' + (p.deepfake ? "" : "display:none") + '"><label>Persona</label><select id="psPersona"><option>CFO, Lena Tan (consented, watermarked)</option><option>Head of IT, R. Devar (consented, watermarked)</option><option>CEO, M. Halim (consented, watermarked)</option></select></div></div>' : '') +
+      '</div>' +
+      '<div class="ps-prev" id="psPrev">' + pretextPreview() + '</div></div>' +
+      '<p class="wiz-warn" style="margin-top:14px;color:var(--muted)">Channels active in this campaign: ' + (act.length ? act.join(", ") : "none selected") + '. Synthetic media is watermarked and logged. Nothing here causes real loss.</p>';
+  }
+  function pretextPreview() {
+    var p = wiz.pretext, body = esc(p.body).replace(/\{\{first_name\}\}/g, "Priya").replace(/\n/g, "<br>");
+    var h = '<div class="pv-tabs">';
+    if (wiz.channels.email) h += '<span>Email</span>';
+    if (wiz.channels.sms) h += '<span>Mobile</span>';
+    h += '<span>Landing</span>';
+    if (wiz.channels.voice) h += '<span>Voice</span>';
+    if (wiz.channels.deepfake) h += '<span>Deepfake</span>';
+    h += '</div><div class="pv-body">';
+    if (wiz.channels.email) {
+      h += '<div class="pv-mail"><div class="pv-mh"><div class="pv-av">' + esc(p.display).charAt(0) + '</div><div><b>' + esc(p.display) + '</b><span>' + esc(p.sender) + '</span></div><em>now</em></div>' +
+        '<div class="pv-subj">' + esc(p.subject) + '</div><div class="pv-text">' + body + '<div class="pv-btn">Review and approve</div></div></div>';
+    }
+    if (wiz.channels.sms) {
+      h += '<div class="pv-phone"><div class="pv-bubble">' + esc(p.sms) + '</div><span class="pv-time">delivered &middot; SMS / WhatsApp</span></div>';
+    }
+    h += '<div class="pv-land"><div class="pv-url"><span>&#128274;</span> nw-secure-approvals.com</div><div class="pv-lbox"><div class="pv-logo">' + esc(p.brand) + '</div><div class="pv-ltitle">' + esc(p.landing) + '</div><input disabled placeholder="work email"><input disabled placeholder="password" type="password"><div class="pv-lbtn">Sign in</div><small>Credential entry is recorded, never stored.</small></div></div>';
+    if (wiz.channels.voice && p.voice) {
+      h += '<div class="pv-voice"><div class="pv-vwave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><b>Cloned voice, vishing</b><p>' + esc(p.voiceScript) + '</p><small>Consented persona &middot; watermarked audio</small></div>';
+    }
+    if (wiz.channels.deepfake && p.deepfake) {
+      h += '<div class="pv-df"><div class="pv-dfvid"><div class="pv-dfface"></div><span class="pv-rec">&#9679; LIVE</span><span class="pv-wm">cherubim watermark</span></div><b>Live deepfake on Teams</b><p>' + esc(p.persona) + '</p></div>';
+    }
+    h += '</div>';
+    return h;
+  }
+  function refreshPrev() { var el = $("#psPrev"); if (el) el.innerHTML = pretextPreview(); }
 
   function bindWiz(steps) {
     $("[data-wx]") && ($("[data-wx]").onclick = closeWiz);
@@ -602,6 +693,33 @@
     var cc = $("#wizCc"); if (cc) cc.oninput = function () { wiz.params.concurrency = +cc.value; $("#ccLabel").textContent = cc.value; };
     var ww = $("#wizWin"); if (ww) ww.onchange = function () { wiz.params.window = ww.value; };
     var wo = $("#wizOps"); if (wo) wo.onchange = function () { wiz.params.opsec = wo.value; };
+
+    // social parameters
+    $$("[data-sp]").forEach(function (c) { c.onchange = function () { wiz.sparams[c.getAttribute("data-sp")] = c.checked; }; });
+    var sr = $("#wizSr"); if (sr) sr.oninput = function () { wiz.sparams.rate = +sr.value; $("#srLabel").textContent = sr.value + " targets / hour"; };
+    var sa = $("#wizSa"); if (sa) sa.oninput = function () { wiz.sparams.aggr = +sa.value; $("#saLabel").textContent = ["Soft", "Standard", "Assertive", "High pressure"][sa.value - 1]; };
+    var sw = $("#wizSw"); if (sw) sw.onchange = function () { wiz.sparams.window = sw.value; };
+
+    // pretext studio, live preview
+    function pv(id, key, sub) { var e = $(id); if (e) e.oninput = function () { wiz.pretext[key] = e.value; if (sub) wiz.pretext[sub] = e.value; refreshPrev(); }; }
+    var th = $("#psTheme"); if (th) th.onchange = function () {
+      wiz.pretext.theme = th.value;
+      var map = {
+        "Finance, urgent payment approval": ["Action required: payment release held for approval", "Northwind Accounts Payable", "accounts.payable@northwlnd-finance.com"],
+        "IT, MFA re-enrolment": ["Your MFA enrolment expires today, re-verify now", "Northwind IT Service Desk", "it-servicedesk@northwlnd-support.com"],
+        "HR, benefits update": ["Confirm your 2026 benefits before the deadline", "Northwind People Team", "people@northwlnd-hr.com"],
+        "Executive, confidential acquisition": ["Confidential: signature needed before market open", "Office of the CFO", "cfo.office@northwlnd-corp.com"]
+      };
+      var m = map[th.value]; if (m) { wiz.pretext.subject = m[0]; wiz.pretext.display = m[1]; wiz.pretext.sender = m[2]; }
+      renderWiz();
+    };
+    pv("#psDisp", "display"); pv("#psFrom", "sender"); pv("#psSubj", "subject");
+    pv("#psBody", "body"); pv("#psSms", "sms"); pv("#psVScript", "voiceScript");
+    var pl = $("#psLand"); if (pl) pl.onchange = function () { wiz.pretext.landing = pl.value; refreshPrev(); };
+    var pp = $("#psPersona"); if (pp) pp.onchange = function () { wiz.pretext.persona = pp.value; refreshPrev(); };
+    var pvc = $("#psVoice"); if (pvc) pvc.onchange = function () { wiz.pretext.voice = pvc.checked; var w = $("#psVoiceWrap"); if (w) w.style.display = pvc.checked ? "" : "none"; refreshPrev(); };
+    var pdf = $("#psDf"); if (pdf) pdf.onchange = function () { wiz.pretext.deepfake = pdf.checked; var w = $("#psDfWrap"); if (w) w.style.display = pdf.checked ? "" : "none"; refreshPrev(); };
+
     $("#wizNext").onclick = function () {
       var label = steps[wiz.step];
       if (label === "Authorization" && !(wiz.auth.a && wiz.auth.b && wiz.auth.c)) { $("#wizWarn").textContent = "All authorization confirmations are required."; return; }
