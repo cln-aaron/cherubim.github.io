@@ -42,26 +42,23 @@
     <div class="auth-card">
       <p class="eyebrow mono">[ Secure sign in ]</p>
       <h2>Welcome back</h2>
-      <p class="auth-hint">Use your work email and any password, or simply continue to the console.</p>
+      <p class="auth-hint">Sign in with your Cherubim credentials to enter the console.</p>
 
       <form id="loginForm" novalidate>
         <label class="field">
           <span>Work email</span>
-          <input type="email" name="email" id="email" autocomplete="username" placeholder="you@northwind.io" value="ciso@northwind.io" />
+          <input type="email" name="email" id="email" autocomplete="username" placeholder="name@company.com" />
         </label>
         <label class="field">
           <span>Password</span>
-          <input type="password" name="password" id="password" autocomplete="current-password" placeholder="••••••••" value="cherubim" />
+          <input type="password" name="password" id="password" autocomplete="current-password" placeholder="••••••••" />
         </label>
         <div class="field-row">
           <label class="check"><input type="checkbox" checked /> <span>Remember this device</span></label>
-          <a href="#" class="muted-link" onclick="return false">Forgot password</a>
         </div>
+        <p class="auth-error" id="authError" role="alert"></p>
         <button class="btn auth-btn" type="submit">Enter the console</button>
       </form>
-
-      <div class="auth-divider"><span>or</span></div>
-      <button class="btn btn-ghost auth-btn" id="ssoBtn" type="button">Continue with single sign on</button>
 
       <p class="auth-foot mono">Protected by hardware backed MFA in production. <a href="index.html">Back to site</a></p>
     </div>

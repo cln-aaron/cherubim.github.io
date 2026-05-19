@@ -1,6 +1,13 @@
 (function () {
   "use strict";
-  try { sessionStorage.setItem("cherubim_demo", "1"); } catch (e) {}
+  try {
+    if (sessionStorage.getItem("cherubim_auth") !== "1") { location.replace("../login.html"); return; }
+  } catch (e) {}
+  var USER = { name: "Aaron Ang", email: "aaron@hesedemet.asia", initials: "AA" };
+  try {
+    var u = JSON.parse(sessionStorage.getItem("cherubim_user") || "null");
+    if (u && u.name) USER = u;
+  } catch (e) {}
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
@@ -379,7 +386,7 @@
       '<div class="frm"><label>Max concurrent agents</label><input type="text" value="120" readonly></div>' +
       '<div class="frm"><label>Data residency</label><input type="text" value="Singapore (ap-southeast-1)" readonly></div>' +
       '<div class="frm"><label>Evidence retention</label><input type="text" value="400 days, immutable, chain of custody" readonly></div>' +
-      '<div class="frm"><label>Accountable owner</label><input type="text" value="D. Aron, CISO" readonly></div></div></div>';
+      '<div class="frm"><label>Accountable owner</label><input type="text" value="Aaron Ang" readonly></div></div></div>';
   }
 
   /* ============================ ROUTER ============================ */
@@ -640,7 +647,7 @@
     if (label === "Authorization") {
       return '<h4>Authorization gate</h4><p class="sub">No campaign starts without a signed, scoped authorization from a named accountable owner.</p>' +
         '<div class="auth-gate">' +
-        '<div class="frm"><label>Accountable owner</label><input type="text" id="wizOwner" value="D. Aron, CISO"></div>' +
+        '<div class="frm"><label>Accountable owner</label><input type="text" id="wizOwner" value="Aaron Ang"></div>' +
         '<div class="frm"><label>Authorization reference</label><input type="text" id="wizRef" value="AUTH-2026-0519-NW"></div>' +
         '<label class="lk"><input type="checkbox" data-ak="a"> I confirm written authorization exists for this exact scope.</label>' +
         '<label class="lk"><input type="checkbox" data-ak="b"> I am authorised to approve adversary simulation against ' + ORG + '.</label>' +
@@ -671,7 +678,7 @@
         ri("Techniques", on.length ? on.join(", ") : "none selected") +
         ri("Validation", "Deterministic, no proof no finding");
     }
-    rows += ri("Owner", "D. Aron, CISO") + ri("Authorization", "AUTH-2026-0519-NW");
+    rows += ri("Owner", "Aaron Ang") + ri("Authorization", "AUTH-2026-0519-NW");
     return '<h4>Review and launch</h4><p class="sub">Confirm the engagement. Cherubim will run autonomously and prove every finding.</p><div class="review">' + rows + '</div>';
   }
   function ri(k, v) { return '<div class="ri"><span>' + k + '</span><b>' + v + '</b></div>'; }
@@ -921,6 +928,11 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     var dy = document.getElementById("dyear"); if (dy) dy.textContent = new Date().getFullYear();
+    var ini = USER.initials || (USER.name || "AA").split(" ").map(function (w) { return w[0]; }).join("").slice(0, 2).toUpperCase();
+    if ($("#uAv")) $("#uAv").textContent = ini;
+    if ($("#uName")) $("#uName").textContent = USER.name;
+    if ($("#uName2")) $("#uName2").textContent = USER.name;
+    if ($("#uMail")) $("#uMail").textContent = USER.email;
     route();
     window.addEventListener("hashchange", route);
     $$(".nav-item").forEach(function (n) { n.onclick = function () { location.hash = "#/" + n.getAttribute("data-r"); }; });
@@ -930,7 +942,7 @@
     var um = $("#userMenu"), up = $("#userPop");
     um.onclick = function (e) { e.stopPropagation(); up.classList.toggle("open"); };
     document.addEventListener("click", function () { up.classList.remove("open"); });
-    $("#logout").onclick = function () { try { sessionStorage.removeItem("cherubim_demo"); } catch (e) {} location.href = "../login.html"; };
+    $("#logout").onclick = function () { try { sessionStorage.removeItem("cherubim_auth"); sessionStorage.removeItem("cherubim_user"); } catch (e) {} location.href = "../login.html"; };
     var mb = $("#menuBtn"); if (mb) mb.onclick = function () { $("#side").classList.toggle("open"); };
     var gs = $("#globalSearch");
     if (gs) gs.addEventListener("keydown", function (e) {

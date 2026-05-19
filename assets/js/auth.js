@@ -17,15 +17,36 @@
     })();
   } else if (glow) { glow.style.display = "none"; }
 
-  function enter() {
-    try { sessionStorage.setItem("cherubim_demo", "1"); } catch (e) {}
+  var VALID_EMAIL = "aaron@hesedemet.asia";
+  var VALID_PASS = "P@ssw0rd!P@ssw0rd!";
+  var USER = { name: "Aaron Ang", email: VALID_EMAIL, initials: "AA" };
+
+  function fail(msg) {
+    var e = document.getElementById("authError");
+    if (e) e.textContent = msg;
+    var btn = document.querySelector(".auth-btn");
+    if (btn) { btn.textContent = "Enter the console"; btn.classList.remove("loading"); }
+  }
+
+  function submit() {
+    var email = (document.getElementById("email").value || "").trim().toLowerCase();
+    var pass = document.getElementById("password").value || "";
+    if (!email || !pass) { fail("Enter your email and password."); return; }
+    if (email !== VALID_EMAIL || pass !== VALID_PASS) {
+      fail("Those credentials are not recognised. Check and try again.");
+      return;
+    }
+    try {
+      sessionStorage.setItem("cherubim_auth", "1");
+      sessionStorage.setItem("cherubim_user", JSON.stringify(USER));
+    } catch (e) {}
+    var err = document.getElementById("authError");
+    if (err) err.textContent = "";
     var btn = document.querySelector(".auth-btn");
     if (btn) { btn.textContent = "Authenticating"; btn.classList.add("loading"); }
     setTimeout(function () { location.href = "demo/index.html"; }, 850);
   }
 
   var form = document.getElementById("loginForm");
-  if (form) form.addEventListener("submit", function (e) { e.preventDefault(); enter(); });
-  var sso = document.getElementById("ssoBtn");
-  if (sso) sso.addEventListener("click", enter);
+  if (form) form.addEventListener("submit", function (e) { e.preventDefault(); submit(); });
 })();

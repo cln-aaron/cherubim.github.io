@@ -3,7 +3,7 @@
 
   var T = {
     "zh-Hans": {
-      "nav.platform": "平台", "nav.offensive": "攻击引擎", "nav.stack": "全栈覆盖",
+      "nav.platform": "平台", "nav.offensive": "引擎", "nav.stack": "全栈覆盖",
       "nav.social": "社会工程", "nav.arch": "架构", "nav.gov": "治理",
       "nav.compliance": "合规", "nav.signin": "登录", "nav.demo": "进入控制台",
 
@@ -176,7 +176,7 @@
     },
 
     "zh-Hant": {
-      "nav.platform": "平台", "nav.offensive": "攻擊引擎", "nav.stack": "全端覆蓋",
+      "nav.platform": "平台", "nav.offensive": "引擎", "nav.stack": "全端覆蓋",
       "nav.social": "社交工程", "nav.arch": "架構", "nav.gov": "治理",
       "nav.compliance": "合規", "nav.signin": "登入", "nav.demo": "進入主控台",
 
@@ -349,7 +349,7 @@
     },
 
     "ko": {
-      "nav.platform": "플랫폼", "nav.offensive": "공격 엔진", "nav.stack": "풀스택",
+      "nav.platform": "플랫폼", "nav.offensive": "엔진", "nav.stack": "풀스택",
       "nav.social": "사회공학", "nav.arch": "아키텍처", "nav.gov": "거버넌스",
       "nav.compliance": "컴플라이언스", "nav.signin": "로그인", "nav.demo": "콘솔 열기",
 
@@ -535,18 +535,13 @@
       else el.innerHTML = dict[k];
     });
     document.documentElement.lang = (lang === "en") ? "en" : (lang === "ko" ? "ko" : lang);
-    var box = document.getElementById("lang");
-    if (box) box.querySelectorAll("button").forEach(function (b) {
-      b.classList.toggle("on", b.getAttribute("data-lang") === lang);
-    });
+    var sel = document.getElementById("langSel");
+    if (sel && sel.value !== lang) sel.value = lang;
     try { localStorage.setItem(STORE, lang); } catch (e) {}
   }
 
-  var box = document.getElementById("lang");
-  if (box) box.addEventListener("click", function (e) {
-    var b = e.target.closest("button[data-lang]");
-    if (b) apply(b.getAttribute("data-lang"));
-  });
+  var sel = document.getElementById("langSel");
+  if (sel) sel.addEventListener("change", function () { apply(sel.value); });
 
   var saved;
   try { saved = localStorage.getItem(STORE); } catch (e) {}

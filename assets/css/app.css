@@ -409,3 +409,5 @@
 /* type option meta */
 .opt .ometa{margin-top:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
   color:var(--gold-soft);opacity:.85}
+
+.auth-error{min-height:18px;margin:0 0 14px;color:var(--danger);font-size:12.5px;font-family:var(--mono)}
