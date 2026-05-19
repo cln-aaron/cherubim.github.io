@@ -478,13 +478,45 @@
 
   /* ============================ LAUNCH WIZARD ============================ */
   var TYPES = [
-    { k: "assumed", n: "Full stack assumed breach", d: "Start inside, prove the path to crown jewels across network, cloud, and identity.", scope: ["network", "cloud", "identity", "app"] },
-    { k: "external", n: "External perimeter", d: "Internet facing web, API, and exposed services from an unauthenticated start.", scope: ["app", "network"] },
-    { k: "cloud", n: "Cloud and Kubernetes", d: "AWS, Azure, GCP, and EKS misconfiguration, IAM, and container escape.", scope: ["cloud"] },
-    { k: "identity", n: "Active Directory and identity", d: "Credential attacks, Kerberos abuse, trust paths to Domain Admin.", scope: ["identity"] },
-    { k: "app", n: "Web and API deep test", d: "Business logic, access control, and chained application flaws.", scope: ["app"] },
-    { k: "social", n: "Omnichannel social engineering", d: "Email, SMS, WhatsApp, voice clone, live deepfake, Slack and Teams.", scope: ["people"] }
+    { k: "assumed", n: "Full stack assumed breach", d: "Start inside, prove the path to crown jewels across the whole stack.",
+      scope: ["network", "cloud", "identity", "app"],
+      tech: [["exploit", "Active exploitation", "Proof of concept exploitation, sandboxed"],
+             ["lateral", "Lateral movement", "Pivot across hosts, subnets, and trusts"],
+             ["privesc", "Privilege escalation", "Escalate toward domain and cloud admin"],
+             ["exfilsim", "Exfiltration simulation", "Prove data reach without removing data"],
+             ["persist", "Persistence", "Plant and clean up a controlled foothold"]] },
+    { k: "external", n: "External perimeter", d: "Internet facing web, API, and exposed services from an unauthenticated start.",
+      scope: ["app", "network"],
+      tech: [["exploit", "Active exploitation", "Proof of concept exploitation, sandboxed"],
+             ["authbypass", "Auth and access control", "Defeat authentication and authorisation"],
+             ["exfilsim", "Data reach simulation", "Prove what an outsider can read"]] },
+    { k: "cloud", n: "Cloud and Kubernetes", d: "AWS, Azure, GCP, and EKS misconfiguration, IAM, and container escape.",
+      scope: ["cloud"],
+      tech: [["iam", "IAM privilege escalation", "Abuse roles, policies, and trust"],
+             ["container", "Container and pod escape", "Break out to node and cluster"],
+             ["exploit", "Active exploitation", "Proof of concept exploitation, sandboxed"],
+             ["exfilsim", "Data reach simulation", "Prove reach to buckets and stores"]] },
+    { k: "identity", n: "Active Directory and identity", d: "Credential attacks, Kerberos abuse, and trust paths to Domain Admin.",
+      scope: ["identity"],
+      tech: [["credattack", "Credential attacks", "Spray, relay, and recover credentials"],
+             ["kerberos", "Kerberos abuse", "Kerberoast, delegation, and ticket attacks"],
+             ["lateral", "Lateral movement", "Move across the directory and trusts"],
+             ["privesc", "Domain escalation", "Path to Domain Admin"]] },
+    { k: "app", n: "Web and API deep test", d: "Business logic, access control, and chained application flaws.",
+      scope: ["app"],
+      tech: [["authbypass", "Access control and logic", "Broken object and function access"],
+             ["injection", "Injection and SSRF", "Server side request and injection classes"],
+             ["exploit", "Active exploitation", "Chain flaws to impact, sandboxed"],
+             ["exfilsim", "Data reach simulation", "Prove what an attacker can read"]] },
+    { k: "social", n: "Omnichannel social engineering", d: "Email, SMS, WhatsApp, voice clone, live deepfake, Slack and Teams.",
+      scope: ["people"], social: true }
   ];
+  var SCOPE_LABEL = { network: "Network", cloud: "Cloud and Kubernetes", identity: "Identity and Active Directory", app: "Applications and APIs", people: "People rosters" };
+  function defaultParams(k) {
+    var t = TYPES.filter(function (x) { return x.k === k; })[0], p = { intensity: 3, concurrency: 80, window: "Off hours (18:00-06:00 SGT)", opsec: "Balanced" };
+    (t.tech || []).forEach(function (x) { p[x[0]] = true; });
+    return p;
+  }
   var SCOPE_ASSETS = {
     network: ["10.4.0.0/16 internal subnet", "vpn.northwind.io", "WIFI-NW-CORP wireless", "Palo Alto edge (14)"],
     cloud: ["AWS prod (12 accounts)", "Azure prod (4 subs)", "GCP (2 projects)", "nw-prod-eks Kubernetes"],
@@ -496,7 +528,7 @@
 
   function openWiz() {
     wiz = { step: 0, type: "assumed", scope: {},
-      params: { intensity: 3, concurrency: 80, window: "Off hours (18:00-06:00 SGT)", opsec: "Balanced", exploit: true, lateral: true, exfilsim: true, persist: false },
+      params: defaultParams("assumed"),
       sparams: { rate: 40, aggr: 2, window: "Business hours (target local)", distress: true, credpage: true, payload: false, trainredirect: true },
       channels: { email: true, sms: true, voice: false, deepfake: false, slack: true },
       pretext: {
@@ -542,7 +574,10 @@
     if (label === "Type") {
       return '<h4>Select campaign type</h4><p class="sub">Each type configures the right agents, scope, and validators.</p><div class="opt-grid">' +
         TYPES.map(function (t) {
-          return '<label class="opt ' + (wiz.type === t.k ? "on" : "") + '" data-type="' + t.k + '"><input type="radio" name="ty" ' + (wiz.type === t.k ? "checked" : "") + '><div><div class="ob">' + t.n + '</div><div class="od">' + t.d + '</div></div></label>';
+          var meta = t.social
+            ? "6 channels &middot; pretext studio &middot; safe mode"
+            : t.scope.map(function (s) { return SCOPE_LABEL[s]; }).join(" &middot; ");
+          return '<label class="opt ' + (wiz.type === t.k ? "on" : "") + '" data-type="' + t.k + '"><input type="radio" name="ty" ' + (wiz.type === t.k ? "checked" : "") + '><div><div class="ob">' + t.n + '</div><div class="od">' + t.d + '</div><div class="ometa">' + meta + '</div></div></label>';
         }).join("") + '</div>';
     }
     if (label === "Scope and targets") {
@@ -585,10 +620,8 @@
         '<div class="frm"><label>Max concurrent agents <span class="range-val" id="ccLabel">' + wiz.params.concurrency + '</span></label><input type="range" id="wizCc" min="10" max="120" step="10" value="' + wiz.params.concurrency + '"></div>' +
         '<div class="frm"><label>Engagement window</label><select id="wizWin"><option ' + sel(wiz.params.window, "Off hours (18:00-06:00 SGT)") + '>Off hours (18:00-06:00 SGT)</option><option ' + sel(wiz.params.window, "Business hours") + '>Business hours</option><option ' + sel(wiz.params.window, "Continuous (24/7)") + '>Continuous (24/7)</option></select></div>' +
         '<div class="frm"><label>OPSEC profile</label><select id="wizOps"><option ' + sel(wiz.params.opsec, "Loud (full speed)") + '>Loud (full speed)</option><option ' + sel(wiz.params.opsec, "Balanced") + '>Balanced</option><option ' + sel(wiz.params.opsec, "Stealth (evade detection)") + '>Stealth (evade detection)</option></select></div>' +
-        [['exploit', 'Active exploitation', 'Permit proof of concept exploitation, sandboxed'],
-         ['lateral', 'Lateral movement', 'Allow pivoting between hosts and subnets'],
-         ['exfilsim', 'Exfiltration simulation', 'Prove data reach without removing data'],
-         ['persist', 'Persistence techniques', 'Plant and clean up a controlled foothold']].map(function (p) {
+        '<div class="frm"><label>Permitted techniques for this engagement</label></div>' +
+        (TYPES.filter(function (x) { return x.k === wiz.type; })[0].tech || []).map(function (p) {
           return '<div class="toggle-row"><div>' + p[1] + '<small>' + p[2] + '</small></div><label class="sw"><input type="checkbox" data-pp="' + p[0] + '" ' + (wiz.params[p[0]] ? "checked" : "") + '><span class="tk"></span></label></div>';
         }).join("");
     }
@@ -631,11 +664,12 @@
         ri("Live deepfake", wiz.channels.deepfake && wiz.pretext.deepfake ? wiz.pretext.persona : "Not used") +
         ri("Safe mode", "Stand down on distress, no real loss");
     } else {
-      rows += ri("Intensity", ["Passive", "Light", "Standard", "Aggressive", "Maximum"][wiz.params.intensity - 1]) +
+      var on = (t2.tech || []).filter(function (x) { return wiz.params[x[0]]; }).map(function (x) { return x[1]; });
+      rows += ri("Surfaces", t2.scope.map(function (s) { return SCOPE_LABEL[s]; }).join(", ")) +
+        ri("Intensity", ["Passive", "Light", "Standard", "Aggressive", "Maximum"][wiz.params.intensity - 1]) +
         ri("Concurrency", wiz.params.concurrency + " agents") + ri("Window", wiz.params.window) + ri("OPSEC", wiz.params.opsec) +
-        ri("Exploitation", wiz.params.exploit ? "Permitted, sandboxed" : "Disabled") +
-        ri("Lateral movement", wiz.params.lateral ? "Permitted" : "Disabled") +
-        ri("Exfiltration sim", wiz.params.exfilsim ? "Prove reach, no loss" : "Disabled");
+        ri("Techniques", on.length ? on.join(", ") : "none selected") +
+        ri("Validation", "Deterministic, no proof no finding");
     }
     rows += ri("Owner", "D. Aron, CISO") + ri("Authorization", "AUTH-2026-0519-NW");
     return '<h4>Review and launch</h4><p class="sub">Confirm the engagement. Cherubim will run autonomously and prove every finding.</p><div class="review">' + rows + '</div>';
@@ -693,7 +727,11 @@
   function bindWiz(steps) {
     $("[data-wx]") && ($("[data-wx]").onclick = closeWiz);
     var bk = $("[data-wb]"); if (bk) bk.onclick = function () { wiz.step--; renderWiz(); };
-    $$("[data-type]").forEach(function (o) { o.onclick = function () { wiz.type = o.getAttribute("data-type"); renderWiz(); }; });
+    $$("[data-type]").forEach(function (o) { o.onclick = function () {
+      var nt = o.getAttribute("data-type");
+      if (nt !== wiz.type) { wiz.type = nt; if (nt !== "social") wiz.params = defaultParams(nt); }
+      renderWiz();
+    }; });
     $$("[data-sc]").forEach(function (c) { c.onchange = function () { wiz.scope[c.getAttribute("data-sc")][c.getAttribute("data-si")] = c.checked; }; });
     $$("[data-pp]").forEach(function (c) { c.onchange = function () { wiz.params[c.getAttribute("data-pp")] = c.checked; }; });
     $$("[data-ch]").forEach(function (c) { c.onchange = function () { wiz.channels[c.getAttribute("data-ch")] = c.checked; }; });

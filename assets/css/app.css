@@ -405,3 +405,7 @@
 .pv-rec{position:absolute;top:9px;left:9px;font-family:var(--mono);font-size:9px;color:#ff5d6c;letter-spacing:.1em}
 .pv-wm{position:absolute;bottom:8px;right:9px;font-family:var(--mono);font-size:8.5px;color:rgba(232,178,74,.6);letter-spacing:.08em}
 @media (max-width:760px){.ps{grid-template-columns:1fr}.ps-edit,.ps-prev{max-height:none}}
+
+/* type option meta */
+.opt .ometa{margin-top:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+  color:var(--gold-soft);opacity:.85}
