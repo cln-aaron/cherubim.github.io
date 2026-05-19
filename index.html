@@ -12,11 +12,14 @@
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
+<div class="grain" aria-hidden="true"></div>
+<div class="glow" id="glow" aria-hidden="true"></div>
+<div class="progress" id="progress" aria-hidden="true"></div>
 
 <header class="nav" id="nav">
   <div class="wrap nav-inner">
@@ -49,20 +52,40 @@
 <section class="hero">
   <div class="hero-grid" aria-hidden="true"></div>
   <div class="wrap hero-inner">
-    <p class="eyebrow">A Hesed &amp; Emet platform</p>
-    <h1>The guardian that attacks first,<br/>so no one else can.</h1>
+    <p class="eyebrow mono">[ A Hesed &amp; Emet platform ]</p>
+    <h1 class="kinetic">
+      <span class="line"><span>The guardian</span></span>
+      <span class="line"><span>that <i>attacks</i> first,</span></span>
+      <span class="line"><span>so no one else can.</span></span>
+    </h1>
     <p class="lede">Cherubim runs an autonomous adversary against your software, your AI systems, and your people in one coordinated campaign. It does what every red team promises, then proves each finding with evidence instead of a confident guess.</p>
     <div class="hero-cta">
       <a class="btn" href="#contact">Request a briefing</a>
       <a class="btn btn-ghost" href="#platform">See how it works</a>
     </div>
     <div class="hero-stats">
-      <div><strong>3</strong><span>attack surfaces, one campaign: code, AI, people</span></div>
-      <div><strong>0</strong><span>unvalidated findings shipped to your board</span></div>
-      <div><strong>24/7</strong><span>continuous, not a once a year snapshot</span></div>
+      <div><strong data-count>3</strong><span>attack surfaces in one campaign. code, AI, people</span></div>
+      <div><strong data-count>0</strong><span>unvalidated findings shipped to your board</span></div>
+      <div><strong>24/7</strong><span>continuous, never a once a year snapshot</span></div>
     </div>
   </div>
+  <div class="scroll-hint mono" aria-hidden="true">scroll</div>
 </section>
+
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>Autonomous offensive engine</span><b>✦</b>
+    <span>AI &amp; LLM red teaming</span><b>✦</b>
+    <span>Voice clone &amp; live deepfake</span><b>✦</b>
+    <span>Omnichannel orchestration</span><b>✦</b>
+    <span>Proof, not guesswork</span><b>✦</b>
+    <span>Autonomous offensive engine</span><b>✦</b>
+    <span>AI &amp; LLM red teaming</span><b>✦</b>
+    <span>Voice clone &amp; live deepfake</span><b>✦</b>
+    <span>Omnichannel orchestration</span><b>✦</b>
+    <span>Proof, not guesswork</span><b>✦</b>
+  </div>
+</div>
 
 <section class="strip">
   <div class="wrap strip-inner">
