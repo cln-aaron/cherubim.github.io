@@ -108,6 +108,22 @@
   <button class="pop-item" id="logout">Sign out</button>
 </div>
 
+<button class="ask-fab" id="askFab" aria-label="Open assistant">
+  <span class="ask-spark">✦</span> Ask Cherubim
+</button>
+<div class="ask-panel" id="askPanel" aria-hidden="true">
+  <div class="ask-head">
+    <div><b>Cherubim assistant</b><span>Tell me what to run or open</span></div>
+    <button class="ask-x" id="askX" aria-label="Close">&times;</button>
+  </div>
+  <div class="ask-log" id="askLog"></div>
+  <div class="ask-sugs" id="askSugs"></div>
+  <form class="ask-form" id="askForm">
+    <input id="askInput" autocomplete="off" placeholder="e.g. run an identity campaign" />
+    <button type="submit" aria-label="Send">→</button>
+  </form>
+</div>
+
 <div class="toast-wrap" id="toasts"></div>
 
 <script src="../assets/js/demo.js"></script>

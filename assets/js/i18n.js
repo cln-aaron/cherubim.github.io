@@ -535,13 +535,37 @@
       else el.innerHTML = dict[k];
     });
     document.documentElement.lang = (lang === "en") ? "en" : (lang === "ko" ? "ko" : lang);
-    var sel = document.getElementById("langSel");
-    if (sel && sel.value !== lang) sel.value = lang;
+    var LBL = { "en": "English", "zh-Hans": "简体中文", "zh-Hant": "繁體中文", "ko": "한국어" };
+    var lbl = document.getElementById("langLabel");
+    if (lbl) lbl.textContent = LBL[lang] || "English";
+    if (dd) dd.querySelectorAll("li[data-lang]").forEach(function (li) {
+      li.setAttribute("aria-selected", li.getAttribute("data-lang") === lang ? "true" : "false");
+    });
     try { localStorage.setItem(STORE, lang); } catch (e) {}
   }
 
-  var sel = document.getElementById("langSel");
-  if (sel) sel.addEventListener("change", function () { apply(sel.value); });
+  var dd = document.getElementById("langDd");
+  var btn = document.getElementById("langBtn");
+  if (btn && dd) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var open = dd.classList.toggle("open");
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    dd.querySelectorAll("li[data-lang]").forEach(function (li) {
+      li.addEventListener("click", function () {
+        apply(li.getAttribute("data-lang"));
+        dd.classList.remove("open");
+        btn.setAttribute("aria-expanded", "false");
+      });
+    });
+    document.addEventListener("click", function (e) {
+      if (!dd.contains(e.target)) { dd.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { dd.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); }
+    });
+  }
 
   var saved;
   try { saved = localStorage.getItem(STORE); } catch (e) {}

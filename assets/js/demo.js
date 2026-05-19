@@ -948,5 +948,128 @@
     if (gs) gs.addEventListener("keydown", function (e) {
       if (e.key === "Enter" && gs.value.trim()) { toast("Search", 'No exact match for "' + esc(gs.value.trim()) + '". Try Findings or Attack surface.'); }
     });
+    setupAssistant();
   });
+
+  /* ============================ ASSISTANT ============================ */
+  function quickStart(typeKey) {
+    openWiz(); closeWiz();
+    wiz.type = typeKey;
+    if (typeKey !== "social") wiz.params = defaultParams(typeKey);
+    runCampaign();
+  }
+  function go(hash) { if (location.hash === hash) route(); else location.hash = hash; }
+
+  function assistantReply(raw) {
+    var m = (raw || "").toLowerCase().trim();
+    var crit = state.findings.filter(function (f) { return f.sev === "Critical"; }).length;
+    var run = state.campaigns.filter(function (c) { return c.status === "Running"; }).length;
+
+    function typeFrom(s) {
+      if (/social|phish|smish|vish|deepfake|whatsapp|email|people/.test(s)) return "social";
+      if (/identity|active directory|\bad\b|kerberos|domain admin|credential/.test(s)) return "identity";
+      if (/cloud|kubernetes|k8s|aws|azure|gcp|container/.test(s)) return "cloud";
+      if (/web|api|app|application|business logic/.test(s)) return "app";
+      if (/external|perimeter|internet facing|unauth/.test(s)) return "external";
+      if (/assumed breach|full stack|everything|whole stack|end to end/.test(s)) return "assumed";
+      return null;
+    }
+    var TN = { assumed: "Full stack assumed breach", external: "External perimeter", cloud: "Cloud and Kubernetes", identity: "Active Directory and identity", app: "Web and API deep test", social: "Omnichannel social engineering" };
+
+    // Launch / run a campaign
+    if (/\b(start|launch|run|kick off|begin|fire)\b/.test(m) && /(campaign|engagement|pentest|test|attack|assessment|red team)/.test(m)) {
+      var tk = typeFrom(m);
+      if (tk && /\b(now|immediately|just|straight away|right now|go)\b/.test(m)) {
+        setTimeout(function () { quickStart(tk); }, 400);
+        return "Launching a <b>" + TN[tk] + "</b> engagement now. The live operations console is opening, every finding will be deterministically validated before it counts.";
+      }
+      setTimeout(function () { if (tk) { openWiz(); wiz.type = tk; if (tk !== "social") wiz.params = defaultParams(tk); renderWiz(); } else openWiz(); }, 400);
+      return tk
+        ? "Opening the launch wizard preset to <b>" + TN[tk] + "</b>. Review scope, parameters and authorization, then launch. Say \"run an " + tk + " campaign now\" if you want me to skip straight to it."
+        : "Opening the launch wizard. Pick a campaign type, scope the targets, set parameters, sign the authorization, then launch. You can also say, for example, \"run a cloud campaign now\".";
+    }
+
+    // Reports / exports
+    if (/(board pack|executive report|exec report)/.test(m) || (/report/.test(m) && /(review|open|show|see)/.test(m))) {
+      go("#/report");
+      if (/export|download|generate/.test(m)) { setTimeout(function () { toast("Board pack exported", "One page narrative generated from sealed evidence."); fakeDl("Cherubim board pack"); }, 500); return "Opening the executive report and exporting the board pack for you. Posture is <b>" + state.posture + "/100</b> with " + crit + " critical findings, all proven."; }
+      return "Here is the executive report. Posture <b>" + state.posture + "/100</b>, " + crit + " critical findings, all deterministically validated. Say \"export the board pack\" and I will generate it.";
+    }
+    if (/audit pack|audit evidence|compliance pack/.test(m)) {
+      go("#/compliance");
+      setTimeout(function () { toast("Audit pack generated", "Evidence mapped to 9 frameworks, auditor ready."); }, 500);
+      return "Generating the one click audit pack from compliance. Every validated finding is mapped to NIST, the Singapore Cybersecurity Act, CSA Cyber Trust and more.";
+    }
+
+    // Navigation
+    var nav = [
+      [/(command center|overview|dashboard|home)/, "#/overview", "the command center"],
+      [/(campaign list|all campaign|campaigns)/, "#/campaigns", "campaigns"],
+      [/(attack surface|asset|inventory|connected stack)/, "#/surface", "the attack surface"],
+      [/(attack path|kill chain)/, "#/paths", "the proven attack path"],
+      [/(finding|vulnerab|cve|exposure)/, "#/findings", "findings"],
+      [/(social|phishing result|human risk)/, "#/social", "social engineering results"],
+      [/(compliance|framework|nist|iso|pdpa|cyber trust)/, "#/compliance", "compliance"],
+      [/(integration|connector)/, "#/connectors", "integrations"],
+      [/(engagement rule|guardrail|setting|governance)/, "#/settings", "engagement rules"],
+      [/(report|board)/, "#/report", "the executive report"]
+    ];
+    for (var i = 0; i < nav.length; i++) {
+      if (nav[i][0].test(m) && /(open|show|go to|take me|view|see|review|pull up|navigate)/.test(m)) {
+        go(nav[i][1]);
+        if (nav[i][1] === "#/findings" && /critical/.test(m)) return "Showing findings. There are <b>" + crit + " critical</b> findings open, each with a validated proof of concept. Click any row for the evidence.";
+        return "Opening " + nav[i][2] + ".";
+      }
+    }
+
+    // Status questions
+    if (/(posture|score|how secure|risk level)/.test(m)) return "Current posture is <b>" + state.posture + "/100</b>, trending up six points this quarter. " + crit + " critical findings remain open, all proven. Want me to open the executive report?";
+    if (/how many.*(critical|finding)|(critical|finding).*count|open finding/.test(m)) { go("#/findings"); return "There are <b>" + state.findings.length + "</b> open findings, <b>" + crit + "</b> of them critical. Opening the findings view.";}
+    if (/running|in progress|active campaign|status/.test(m)) { go("#/campaigns"); return run ? "There " + (run === 1 ? "is" : "are") + " <b>" + run + "</b> campaign" + (run === 1 ? "" : "s") + " running. Opening campaigns." : "No campaigns are running right now. Say \"run an assumed breach campaign now\" and I will start one."; }
+
+    if (/sign out|log ?out|logout/.test(m)) { setTimeout(function () { $("#logout").onclick(); }, 600); return "Signing you out and returning to the sign in page."; }
+
+    if (/^(hi|hey|hello|yo|help|what can you|who are you|\?)/.test(m) || m.length < 3) {
+      return "I am the Cherubim assistant. I can drive the console for you. Try: <b>run an identity campaign now</b>, <b>open findings</b>, <b>review the executive report</b>, <b>export the board pack</b>, <b>show the attack surface</b>, or <b>generate the audit pack</b>.";
+    }
+    return "I can launch and configure campaigns, open any view, surface findings, and generate reports or the audit pack. Try \"run a cloud campaign now\" or \"review the board pack\". What would you like me to do?";
+  }
+
+  function setupAssistant() {
+    var fab = $("#askFab"), panel = $("#askPanel"), log = $("#askLog"),
+        form = $("#askForm"), input = $("#askInput"), x = $("#askX"), sugs = $("#askSugs");
+    if (!fab || !panel) return;
+    var seeded = false;
+    function add(who, html) {
+      var d = document.createElement("div");
+      d.className = "ask-msg " + who;
+      d.innerHTML = html;
+      log.appendChild(d); log.scrollTop = log.scrollHeight;
+    }
+    function seed() {
+      if (seeded) return; seeded = true;
+      add("bot", "Hello " + (USER.name.split(" ")[0]) + ". I am the Cherubim assistant. Tell me what to do and I will run it.");
+      var s = ["Run an assumed breach campaign now", "Open findings", "Review the executive report", "Generate the audit pack"];
+      sugs.innerHTML = "";
+      s.forEach(function (t) {
+        var b = document.createElement("button"); b.textContent = t;
+        b.onclick = function () { handle(t); };
+        sugs.appendChild(b);
+      });
+    }
+    function open() { panel.classList.add("open"); panel.setAttribute("aria-hidden", "false"); seed(); setTimeout(function () { input.focus(); }, 200); }
+    function close() { panel.classList.remove("open"); panel.setAttribute("aria-hidden", "true"); }
+    function handle(text) {
+      add("me", esc(text));
+      var r = assistantReply(text);
+      setTimeout(function () { add("bot", r); }, 320);
+    }
+    fab.onclick = function () { panel.classList.contains("open") ? close() : open(); };
+    x.onclick = close;
+    form.onsubmit = function (e) {
+      e.preventDefault();
+      var v = input.value.trim(); if (!v) return;
+      input.value = ""; handle(v);
+    };
+  }
 })();
