@@ -102,16 +102,22 @@
       <span class="brand-text">Cherubim</span>
     </a>
     <nav class="nav-links" aria-label="Primary">
-      <a href="#platform">Platform</a>
-      <a href="#offensive">Offensive Engine</a>
-      <a href="#stack">Full Stack</a>
-      <a href="#social">Social Engineering</a>
-      <a href="#architecture">Architecture</a>
-      <a href="#trust">Governance</a>
-      <a href="#compliance">Compliance</a>
-      <a href="login.html">Sign in</a>
+      <a href="#platform" data-i18n="nav.platform">Platform</a>
+      <a href="#offensive" data-i18n="nav.offensive">Offensive Engine</a>
+      <a href="#stack" data-i18n="nav.stack">Full Stack</a>
+      <a href="#social" data-i18n="nav.social">Social Engineering</a>
+      <a href="#architecture" data-i18n="nav.arch">Architecture</a>
+      <a href="#trust" data-i18n="nav.gov">Governance</a>
+      <a href="#compliance" data-i18n="nav.compliance">Compliance</a>
+      <a href="login.html" data-i18n="nav.signin">Sign in</a>
     </nav>
-    <a class="btn btn-sm" href="demo/index.html">Live demo</a>
+    <div class="lang" id="lang" role="group" aria-label="Language">
+      <button data-lang="en" class="on">EN</button>
+      <button data-lang="zh-Hans">简</button>
+      <button data-lang="zh-Hant">繁</button>
+      <button data-lang="ko">한</button>
+    </div>
+    <a class="btn btn-sm" href="demo/index.html" data-i18n="nav.demo">Open console</a>
     <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" id="navToggle">
       <span></span><span></span><span></span>
     </button>
@@ -124,23 +130,23 @@
 <section class="hero">
   <div class="hero-grid" aria-hidden="true"></div>
   <div class="wrap hero-inner">
-    <p class="eyebrow mono">[ A Hesed &amp; Emet platform ]</p>
+    <p class="eyebrow mono" data-i18n="hero.eyebrow">[ A Hesed &amp; Emet platform ]</p>
     <h1 class="kinetic">
-      <span class="line"><span>We <i>attack</i> first.</span></span>
-      <span class="line"><span>So no one else can.</span></span>
+      <span class="line"><span data-i18n="hero.l1">We <i>attack</i> first.</span></span>
+      <span class="line"><span data-i18n="hero.l2">So no one else can.</span></span>
     </h1>
-    <p class="lede">An agentic AI red team that pentests your whole stack and your people, then proves every finding.</p>
+    <p class="lede" data-i18n="hero.lede">An agentic AI red team that pentests your whole stack and your people, then proves every finding.</p>
     <div class="hero-cta">
-      <a class="btn" href="#contact">Request a briefing</a>
-      <a class="btn btn-ghost" href="#platform">See how it works</a>
+      <a class="btn" href="#contact" data-i18n="cta.brief">Request a briefing</a>
+      <a class="btn btn-ghost" href="#platform" data-i18n="cta.how">See how it works</a>
     </div>
     <div class="hero-stats">
-      <div><strong data-count>3</strong><span>attack surfaces in one campaign. code, AI, people</span></div>
-      <div><strong data-count>0</strong><span>unvalidated findings shipped to your board</span></div>
-      <div><strong>24/7</strong><span>continuous, never a once a year snapshot</span></div>
+      <div><strong data-count>3</strong><span data-i18n="hero.s1">attack surfaces in one campaign. code, AI, people</span></div>
+      <div><strong data-count>0</strong><span data-i18n="hero.s2">unvalidated findings shipped to your board</span></div>
+      <div><strong>24/7</strong><span data-i18n="hero.s3">continuous, never a once a year snapshot</span></div>
     </div>
   </div>
-  <div class="scroll-hint mono" aria-hidden="true">scroll</div>
+  <div class="scroll-hint mono" aria-hidden="true" data-i18n="hero.scroll">scroll</div>
 </section>
 
 <div class="marquee" aria-hidden="true">
@@ -160,41 +166,41 @@
 
 <section class="strip">
   <div class="wrap strip-inner">
-    <p>The adversary already uses autonomous agents, cloned voices, and live deepfake video. Cherubim meets them on every channel, under your control.</p>
+    <p data-i18n="strip">The adversary already uses autonomous agents, cloned voices, and live deepfake video. Cherubim meets them on every channel, under your control.</p>
   </div>
 </section>
 
 <section class="section" id="platform">
   <div class="wrap">
     <header class="sec-head">
-      <p class="eyebrow">The platform</p>
-      <h2>Four guardians. One campaign. One narrative.</h2>
-      <p class="sec-sub">Most tools cover one surface. Real attackers do not. Cherubim runs four engines under one intelligence layer, so a weak signal in one becomes the opening move in the next.</p>
+      <p class="eyebrow" data-i18n="plat.ey">The platform</p>
+      <h2 data-i18n="plat.h">Four guardians. One campaign. One narrative.</h2>
+      <p class="sec-sub" data-i18n="plat.sub">Most tools cover one surface. Real attackers do not. Cherubim runs four engines under one intelligence layer, so a weak signal in one becomes the opening move in the next.</p>
     </header>
     <div class="cards">
       <article class="card">
         <span class="card-num">01</span>
-        <h3>Autonomous Offensive Engine</h3>
-        <p>A swarm of reasoning agents that maps, exploits, and chains weaknesses across web, API, cloud, and identity, at machine speed.</p>
-        <a class="card-link" href="#offensive">Explore the engine</a>
+        <h3 data-i18n="c1.h">Autonomous Offensive Engine</h3>
+        <p data-i18n="c1.p">A swarm of reasoning agents that maps, exploits, and chains weaknesses across web, API, cloud, and identity, at machine speed.</p>
+        <a class="card-link" href="#offensive" data-i18n="c1.l">Explore the engine</a>
       </article>
       <article class="card">
         <span class="card-num">02</span>
-        <h3>Full Stack Attack Coverage</h3>
-        <p>Network, web, API, cloud, Kubernetes, identity, Active Directory, wireless, OT, and supply chain. Every layer, one continuous kill chain.</p>
-        <a class="card-link" href="#stack">Explore the coverage</a>
+        <h3 data-i18n="c2.h">Full Stack Attack Coverage</h3>
+        <p data-i18n="c2.p">Network, web, API, cloud, Kubernetes, identity, Active Directory, wireless, OT, and supply chain. Every layer, one continuous kill chain.</p>
+        <a class="card-link" href="#stack" data-i18n="c2.l">Explore the coverage</a>
       </article>
       <article class="card">
         <span class="card-num">03</span>
-        <h3>Omnichannel Social Engineering</h3>
-        <p>Orchestrated campaigns across email, SMS, WhatsApp, voice, and live deepfake video on Zoom and Teams, with Slack and Teams follow up.</p>
-        <a class="card-link" href="#social">Explore social engineering</a>
+        <h3 data-i18n="c3.h">Omnichannel Social Engineering</h3>
+        <p data-i18n="c3.p">Orchestrated campaigns across email, SMS, WhatsApp, voice, and live deepfake video on Zoom and Teams, with Slack and Teams follow up.</p>
+        <a class="card-link" href="#social" data-i18n="c3.l">Explore social engineering</a>
       </article>
       <article class="card">
         <span class="card-num">04</span>
-        <h3>Human Resilience &amp; Truth Reporting</h3>
-        <p>Every result becomes a graded, reproducible finding and a kind, blame free coaching path for the people who were tested.</p>
-        <a class="card-link" href="#resilience">Explore reporting</a>
+        <h3 data-i18n="c4.h">Human Resilience &amp; Truth Reporting</h3>
+        <p data-i18n="c4.p">Every result becomes a graded, reproducible finding and a kind, blame free coaching path for the people who were tested.</p>
+        <a class="card-link" href="#resilience" data-i18n="c4.l">Explore reporting</a>
       </article>
     </div>
   </div>
@@ -203,28 +209,28 @@
 <section class="section alt" id="offensive">
   <div class="wrap split">
     <div class="split-copy">
-      <p class="eyebrow">Guardian 01</p>
-      <h2>Autonomous Offensive Engine</h2>
-      <p>Cherubim does not run one scanner and hand you a list. It deploys a coordinated set of autonomous agents, each focused on a specific objective, that reason about your environment, attempt real exploit paths, and chain low signals into a full attack.</p>
-      <p>The difference that matters is what happens after a finding. Every candidate vulnerability is passed to a deterministic validator that reproduces the exploit in a sandbox and captures the proof. A finding only reaches you once it has been demonstrated, never because a model felt confident.</p>
+      <p class="eyebrow" data-i18n="g1.ey">Guardian 01</p>
+      <h2 data-i18n="g1.h">Autonomous Offensive Engine</h2>
+      <p data-i18n="g1.p1">Cherubim does not run one scanner and hand you a list. It deploys a coordinated set of autonomous agents, each focused on a specific objective, that reason about your environment, attempt real exploit paths, and chain low signals into a full attack.</p>
+      <p data-i18n="g1.p2">The difference that matters is what happens after a finding. Every candidate vulnerability is passed to a deterministic validator that reproduces the exploit in a sandbox and captures the proof. A finding only reaches you once it has been demonstrated, never because a model felt confident.</p>
       <ul class="feature-list">
-        <li><strong>Recon and attack surface mapping</strong> across web apps, APIs, cloud configuration, and identity.</li>
-        <li><strong>Exploit and chain</strong> with multi step reasoning, the way a human operator pivots from a small misconfiguration to domain impact.</li>
-        <li><strong>Deterministic validation</strong> that reproduces each finding and attaches a proof of concept, so triage time drops to near zero.</li>
-        <li><strong>Continuous mode</strong> that re tests on every release and tells you the moment a fix regresses.</li>
-        <li><strong>Safe by construction</strong> with scoped targets, rate control, and a hard stop the moment a boundary is touched.</li>
+        <li data-i18n="g1.f1"><strong>Recon and attack surface mapping</strong> across web apps, APIs, cloud configuration, and identity.</li>
+        <li data-i18n="g1.f2"><strong>Exploit and chain</strong> with multi step reasoning, the way a human operator pivots from a small misconfiguration to domain impact.</li>
+        <li data-i18n="g1.f3"><strong>Deterministic validation</strong> that reproduces each finding and attaches a proof of concept, so triage time drops to near zero.</li>
+        <li data-i18n="g1.f4"><strong>Continuous mode</strong> that re tests on every release and tells you the moment a fix regresses.</li>
+        <li data-i18n="g1.f5"><strong>Safe by construction</strong> with scoped targets, rate control, and a hard stop the moment a boundary is touched.</li>
       </ul>
     </div>
     <aside class="split-visual">
       <div class="panel">
-        <p class="panel-cap">Finding lifecycle</p>
+        <p class="panel-cap" data-i18n="g1.cap">Finding lifecycle</p>
         <ol class="flow">
-          <li><span>Discover</span><em>Agent maps an exposed object reference</em></li>
-          <li><span>Reason</span><em>Plans a chain toward sensitive data</em></li>
-          <li><span>Validate</span><em>Sandbox reproduces the exploit deterministically</em></li>
-          <li><span>Prove</span><em>Evidence and remediation attached, severity graded</em></li>
+          <li><span data-i18n="g1.n1a">Discover</span><em data-i18n="g1.n1b">Agent maps an exposed object reference</em></li>
+          <li><span data-i18n="g1.n2a">Reason</span><em data-i18n="g1.n2b">Plans a chain toward sensitive data</em></li>
+          <li><span data-i18n="g1.n3a">Validate</span><em data-i18n="g1.n3b">Sandbox reproduces the exploit deterministically</em></li>
+          <li><span data-i18n="g1.n4a">Prove</span><em data-i18n="g1.n4b">Evidence and remediation attached, severity graded</em></li>
         </ol>
-        <p class="panel-foot">No proof, no finding. That is the rule.</p>
+        <p class="panel-foot" data-i18n="g1.foot">No proof, no finding. That is the rule.</p>
       </div>
     </aside>
   </div>
@@ -233,29 +239,29 @@
 <section class="section" id="stack">
   <div class="wrap split reverse">
     <div class="split-copy">
-      <p class="eyebrow">Guardian 02</p>
-      <h2>Full Stack Attack Coverage</h2>
-      <p>A real adversary does not respect the boundaries of your tooling. They start at an exposed edge, pivot through the network, and do not stop until they own identity. Cherubim runs the same kill chain across every layer of the stack, as one continuous engagement, not a folder of disconnected reports.</p>
-      <p>The autonomous engine performs reconnaissance, exploitation, lateral movement, privilege escalation, and exfiltration simulation, then proves the full attack path end to end the way an operator would walk it.</p>
+      <p class="eyebrow" data-i18n="g2.ey">Guardian 02</p>
+      <h2 data-i18n="g2.h">Full Stack Attack Coverage</h2>
+      <p data-i18n="g2.p1">A real adversary does not respect the boundaries of your tooling. They start at an exposed edge, pivot through the network, and do not stop until they own identity. Cherubim runs the same kill chain across every layer of the stack, as one continuous engagement, not a folder of disconnected reports.</p>
+      <p data-i18n="g2.p2">The autonomous engine performs reconnaissance, exploitation, lateral movement, privilege escalation, and exfiltration simulation, then proves the full attack path end to end the way an operator would walk it.</p>
       <ul class="feature-list">
-        <li><strong>External and internal network</strong>. Perimeter, segmentation, and assumed breach scenarios from foothold to domain impact.</li>
-        <li><strong>Web, API, and mobile</strong>. Business logic abuse, access control, and chained application flaws, not a header scan.</li>
-        <li><strong>Cloud and Kubernetes</strong>. Misconfiguration, over scoped roles, container escape, and metadata service abuse across AWS, Azure, and GCP.</li>
-        <li><strong>Identity and Active Directory</strong>. Credential attacks, Kerberos abuse, trust relationships, and the path to domain administrator.</li>
-        <li><strong>Wireless, OT, and supply chain</strong>. The forgotten surfaces, from rogue access points to vendor and dependency risk.</li>
+        <li data-i18n="g2.f1"><strong>External and internal network</strong>. Perimeter, segmentation, and assumed breach scenarios from foothold to domain impact.</li>
+        <li data-i18n="g2.f2"><strong>Web, API, and mobile</strong>. Business logic abuse, access control, and chained application flaws, not a header scan.</li>
+        <li data-i18n="g2.f3"><strong>Cloud and Kubernetes</strong>. Misconfiguration, over scoped roles, container escape, and metadata service abuse across AWS, Azure, and GCP.</li>
+        <li data-i18n="g2.f4"><strong>Identity and Active Directory</strong>. Credential attacks, Kerberos abuse, trust relationships, and the path to domain administrator.</li>
+        <li data-i18n="g2.f5"><strong>Wireless, OT, and supply chain</strong>. The forgotten surfaces, from rogue access points to vendor and dependency risk.</li>
       </ul>
     </div>
     <aside class="split-visual">
       <div class="panel">
-        <p class="panel-cap">One attack path, end to end</p>
+        <p class="panel-cap" data-i18n="g2.cap">One attack path, end to end</p>
         <ol class="flow">
-          <li><span>Edge</span><em>Exposed service on the perimeter</em></li>
-          <li><span>Foothold</span><em>Exploited and a beachhead established</em></li>
-          <li><span>Pivot</span><em>Lateral movement across the internal network</em></li>
-          <li><span>Escalate</span><em>Credential abuse to domain administrator</em></li>
-          <li><span>Impact</span><em>Crown jewel reached, exfiltration proven, then stopped</em></li>
+          <li><span data-i18n="g2.n1a">Edge</span><em data-i18n="g2.n1b">Exposed service on the perimeter</em></li>
+          <li><span data-i18n="g2.n2a">Foothold</span><em data-i18n="g2.n2b">Exploited and a beachhead established</em></li>
+          <li><span data-i18n="g2.n3a">Pivot</span><em data-i18n="g2.n3b">Lateral movement across the internal network</em></li>
+          <li><span data-i18n="g2.n4a">Escalate</span><em data-i18n="g2.n4b">Credential abuse to domain administrator</em></li>
+          <li><span data-i18n="g2.n5a">Impact</span><em data-i18n="g2.n5b">Crown jewel reached, exfiltration proven, then stopped</em></li>
         </ol>
-        <p class="panel-foot">The whole chain, not five separate findings.</p>
+        <p class="panel-foot" data-i18n="g2.foot">The whole chain, not five separate findings.</p>
       </div>
     </aside>
   </div>
@@ -264,39 +270,39 @@
 <section class="section alt" id="social">
   <div class="wrap">
     <header class="sec-head">
-      <p class="eyebrow">Guardian 03</p>
-      <h2>Orchestrated Omnichannel Social Engineering</h2>
-      <p class="sec-sub">A real social engineering attack is not one email. It is a calendar invite, then a WhatsApp message that sounds like your CFO, then a Teams call where the face on screen is convincing enough to move money. Cherubim runs that full chain, safely, with consent, and with a central intelligence layer that adapts each stage to how the target responded to the last one.</p>
+      <p class="eyebrow" data-i18n="g3.ey">Guardian 03</p>
+      <h2 data-i18n="g3.h">Orchestrated Omnichannel Social Engineering</h2>
+      <p class="sec-sub" data-i18n="g3.sub">A real social engineering attack is not one email. It is a calendar invite, then a WhatsApp message that sounds like your CFO, then a Teams call where the face on screen is convincing enough to move money. Cherubim runs that full chain, safely, with consent, and with a central intelligence layer that adapts each stage to how the target responded to the last one.</p>
     </header>
     <div class="channel-grid">
       <article class="channel">
-        <h3>Phishing email</h3>
-        <p>Context aware lures generated from open source signals about your organisation, graded by who clicked, who reported, and who escalated.</p>
+        <h3 data-i18n="g3.c1h">Phishing email</h3>
+        <p data-i18n="g3.c1p">Context aware lures generated from open source signals about your organisation, graded by who clicked, who reported, and who escalated.</p>
       </article>
       <article class="channel">
-        <h3>Smishing and WhatsApp</h3>
-        <p>SMS and WhatsApp pretexting that mirrors how modern attackers move a target off corporate channels and onto a personal device.</p>
+        <h3 data-i18n="g3.c2h">Smishing and WhatsApp</h3>
+        <p data-i18n="g3.c2p">SMS and WhatsApp pretexting that mirrors how modern attackers move a target off corporate channels and onto a personal device.</p>
       </article>
       <article class="channel">
-        <h3>Voice and vishing</h3>
-        <p>Consented voice cloning of an authorised internal persona to test whether a phone call alone can unlock a process it should not.</p>
+        <h3 data-i18n="g3.c3h">Voice and vishing</h3>
+        <p data-i18n="g3.c3p">Consented voice cloning of an authorised internal persona to test whether a phone call alone can unlock a process it should not.</p>
       </article>
       <article class="channel">
-        <h3>Live deepfake video</h3>
-        <p>Real time face and voice synthesis that can join a scheduled Zoom, Microsoft Teams, or Google Meet call, to test executive impersonation under live conditions.</p>
+        <h3 data-i18n="g3.c4h">Live deepfake video</h3>
+        <p data-i18n="g3.c4p">Real time face and voice synthesis that can join a scheduled Zoom, Microsoft Teams, or Google Meet call, to test executive impersonation under live conditions.</p>
       </article>
       <article class="channel">
-        <h3>Slack and Teams</h3>
-        <p>Internal messaging follow up that exploits the trust people place in tools inside the perimeter, the channel attackers love most.</p>
+        <h3 data-i18n="g3.c5h">Slack and Teams</h3>
+        <p data-i18n="g3.c5p">Internal messaging follow up that exploits the trust people place in tools inside the perimeter, the channel attackers love most.</p>
       </article>
       <article class="channel">
-        <h3>Helpdesk and process</h3>
-        <p>Targeted engagements against password reset, MFA recovery, and vendor onboarding, the human processes that bypass every control you bought.</p>
+        <h3 data-i18n="g3.c6h">Helpdesk and process</h3>
+        <p data-i18n="g3.c6p">Targeted engagements against password reset, MFA recovery, and vendor onboarding, the human processes that bypass every control you bought.</p>
       </article>
     </div>
     <div class="orchestration">
-      <p class="panel-cap">Why orchestration is the product</p>
-      <p>Each channel on its own is a commodity. The value is the narrative engine that keeps one story consistent across all of them, escalating only when the target leans in and standing down when they resist or report. That is exactly how a serious adversary operates, and it is the only honest way to measure whether your people would actually catch them.</p>
+      <p class="panel-cap" data-i18n="g3.ocap">Why orchestration is the product</p>
+      <p data-i18n="g3.op">Each channel on its own is a commodity. The value is the narrative engine that keeps one story consistent across all of them, escalating only when the target leans in and standing down when they resist or report. That is exactly how a serious adversary operates, and it is the only honest way to measure whether your people would actually catch them.</p>
     </div>
   </div>
 </section>
@@ -304,26 +310,26 @@
 <section class="section" id="resilience">
   <div class="wrap split">
     <div class="split-copy">
-      <p class="eyebrow">Guardian 04</p>
-      <h2>Human Resilience and Truth Reporting</h2>
-      <p>The name behind this platform means kindness and truth. Cherubim is built to honour both. Findings are delivered with the truth a board needs to act, and the people who were tested are met with coaching, never blame.</p>
-      <p>Every technical and human result lands in one evidence graded report. Leadership sees risk in business terms. Engineers get a reproducible proof of concept and a fix. The tested employee gets a short, supportive lesson tied to the exact moment that mattered, so the next attempt fails.</p>
+      <p class="eyebrow" data-i18n="g4.ey">Guardian 04</p>
+      <h2 data-i18n="g4.h">Human Resilience and Truth Reporting</h2>
+      <p data-i18n="g4.p1">The name behind this platform means kindness and truth. Cherubim is built to honour both. Findings are delivered with the truth a board needs to act, and the people who were tested are met with coaching, never blame.</p>
+      <p data-i18n="g4.p2">Every technical and human result lands in one evidence graded report. Leadership sees risk in business terms. Engineers get a reproducible proof of concept and a fix. The tested employee gets a short, supportive lesson tied to the exact moment that mattered, so the next attempt fails.</p>
       <ul class="feature-list">
-        <li><strong>Board ready narrative</strong> that ties every finding to business impact and a clear owner.</li>
-        <li><strong>Reproducible evidence</strong> for engineering, with severity and remediation, no noise.</li>
-        <li><strong>Blame free coaching</strong> delivered in the moment, designed to build resilience, not fear.</li>
-        <li><strong>Trend lines over time</strong> so you can prove the programme is making the organisation harder to attack.</li>
+        <li data-i18n="g4.f1"><strong>Board ready narrative</strong> that ties every finding to business impact and a clear owner.</li>
+        <li data-i18n="g4.f2"><strong>Reproducible evidence</strong> for engineering, with severity and remediation, no noise.</li>
+        <li data-i18n="g4.f3"><strong>Blame free coaching</strong> delivered in the moment, designed to build resilience, not fear.</li>
+        <li data-i18n="g4.f4"><strong>Trend lines over time</strong> so you can prove the programme is making the organisation harder to attack.</li>
       </ul>
     </div>
     <aside class="split-visual">
       <div class="panel report">
-        <div class="report-row"><span>Critical</span><b>2</b></div>
+        <div class="report-row"><span data-i18n="g4.r1">Critical</span><b>2</b></div>
         <div class="report-bar"><i style="width:14%"></i></div>
-        <div class="report-row"><span>High</span><b>9</b></div>
+        <div class="report-row"><span data-i18n="g4.r2">High</span><b>9</b></div>
         <div class="report-bar"><i style="width:38%"></i></div>
-        <div class="report-row"><span>Human risk index</span><b>Improving</b></div>
+        <div class="report-row"><span data-i18n="g4.r3">Human risk index</span><b data-i18n="g4.r3b">Improving</b></div>
         <div class="report-bar"><i style="width:71%"></i></div>
-        <p class="panel-foot">One report. Truth for the board, kindness for the team.</p>
+        <p class="panel-foot" data-i18n="g4.foot">One report. Truth for the board, kindness for the team.</p>
       </div>
     </aside>
   </div>
@@ -332,29 +338,29 @@
 <section class="section alt" id="different">
   <div class="wrap">
     <header class="sec-head">
-      <p class="eyebrow">Why Cherubim</p>
-      <h2>What everyone does, done honestly and in one place.</h2>
-      <p class="sec-sub">The market is full of point tools. An autonomous web pentester here. A separate network scanner there. A cloud posture tool. A phishing button. A deepfake demo. Cherubim is the flagship that unifies the entire stack, and refuses to ship a finding it cannot prove.</p>
+      <p class="eyebrow" data-i18n="dif.ey">Why Cherubim</p>
+      <h2 data-i18n="dif.h">What everyone does, done honestly and in one place.</h2>
+      <p class="sec-sub" data-i18n="dif.sub">The market is full of point tools. An autonomous web pentester here. A separate network scanner there. A cloud posture tool. A phishing button. A deepfake demo. Cherubim is the flagship that unifies the entire stack, and refuses to ship a finding it cannot prove.</p>
     </header>
     <div class="compare">
       <div class="compare-col">
-        <h3>The usual approach</h3>
+        <h3 data-i18n="dif.uh">The usual approach</h3>
         <ul>
-          <li>Separate vendors for code, AI, and people</li>
-          <li>Confident findings, no reproducible proof</li>
-          <li>Annual snapshot that is stale on day two</li>
-          <li>Phishing as a single channel checkbox</li>
-          <li>Reports that blame the employee</li>
+          <li data-i18n="dif.u1">Separate vendors for code, AI, and people</li>
+          <li data-i18n="dif.u2">Confident findings, no reproducible proof</li>
+          <li data-i18n="dif.u3">Annual snapshot that is stale on day two</li>
+          <li data-i18n="dif.u4">Phishing as a single channel checkbox</li>
+          <li data-i18n="dif.u5">Reports that blame the employee</li>
         </ul>
       </div>
       <div class="compare-col win">
-        <h3>Cherubim</h3>
+        <h3 data-i18n="dif.wh">Cherubim</h3>
         <ul>
-          <li>One coordinated campaign across all three surfaces</li>
-          <li>Deterministic validation, no proof means no finding</li>
-          <li>Continuous testing tied to every release</li>
-          <li>True omnichannel orchestration with a narrative engine</li>
-          <li>Truth for the board, coaching for the people</li>
+          <li data-i18n="dif.w1">One coordinated campaign across all three surfaces</li>
+          <li data-i18n="dif.w2">Deterministic validation, no proof means no finding</li>
+          <li data-i18n="dif.w3">Continuous testing tied to every release</li>
+          <li data-i18n="dif.w4">True omnichannel orchestration with a narrative engine</li>
+          <li data-i18n="dif.w5">Truth for the board, coaching for the people</li>
         </ul>
       </div>
     </div>
@@ -364,34 +370,34 @@
 <section class="section" id="architecture">
   <div class="wrap">
     <header class="sec-head">
-      <p class="eyebrow">For the technical reader</p>
-      <h2>Architecture and feasibility</h2>
-      <p class="sec-sub">Nothing here is speculative. Every capability maps to techniques that are already proven in offensive security and synthetic media. Cherubim is the engineering discipline around them.</p>
+      <p class="eyebrow" data-i18n="ar.ey">For the technical reader</p>
+      <h2 data-i18n="ar.h">Architecture and feasibility</h2>
+      <p class="sec-sub" data-i18n="ar.sub">Nothing here is speculative. Every capability maps to techniques that are already proven in offensive security and synthetic media. Cherubim is the engineering discipline around them.</p>
     </header>
     <div class="arch">
       <div class="arch-item">
-        <h3>Orchestration layer</h3>
-        <p>A planner that decomposes an engagement into objectives and dispatches specialised agents. Tool use is mediated through a typed interface, so every action an agent takes is logged, scoped, and reversible.</p>
+        <h3 data-i18n="ar.1h">Orchestration layer</h3>
+        <p data-i18n="ar.1p">A planner that decomposes an engagement into objectives and dispatches specialised agents. Tool use is mediated through a typed interface, so every action an agent takes is logged, scoped, and reversible.</p>
       </div>
       <div class="arch-item">
-        <h3>Deterministic validators</h3>
-        <p>Findings are confirmed by non model code that reproduces the exploit in an isolated sandbox. This is the documented reason autonomous pentesters reach human grade precision rather than drowning teams in false positives.</p>
+        <h3 data-i18n="ar.2h">Deterministic validators</h3>
+        <p data-i18n="ar.2p">Findings are confirmed by non model code that reproduces the exploit in an isolated sandbox. This is the documented reason autonomous pentesters reach human grade precision rather than drowning teams in false positives.</p>
       </div>
       <div class="arch-item">
-        <h3>Synthetic media pipeline</h3>
-        <p>Voice cloning and real time face synthesis feed a virtual camera and audio device, which is how a deepfake persona joins a standard Zoom, Teams, or Meet session. Every asset is watermarked and access controlled.</p>
+        <h3 data-i18n="ar.3h">Synthetic media pipeline</h3>
+        <p data-i18n="ar.3p">Voice cloning and real time face synthesis feed a virtual camera and audio device, which is how a deepfake persona joins a standard Zoom, Teams, or Meet session. Every asset is watermarked and access controlled.</p>
       </div>
       <div class="arch-item">
-        <h3>Channel connectors</h3>
-        <p>Email, SMS, WhatsApp, voice telephony, and workspace messaging integrate through their official interfaces, so a campaign runs on the same rails your organisation already uses.</p>
+        <h3 data-i18n="ar.4h">Channel connectors</h3>
+        <p data-i18n="ar.4p">Email, SMS, WhatsApp, voice telephony, and workspace messaging integrate through their official interfaces, so a campaign runs on the same rails your organisation already uses.</p>
       </div>
       <div class="arch-item">
-        <h3>Narrative state engine</h3>
-        <p>A shared state object carries the pretext across channels and stages, so the WhatsApp message, the call, and the video meeting all reference one consistent story and escalate only on engagement.</p>
+        <h3 data-i18n="ar.5h">Narrative state engine</h3>
+        <p data-i18n="ar.5p">A shared state object carries the pretext across channels and stages, so the WhatsApp message, the call, and the video meeting all reference one consistent story and escalate only on engagement.</p>
       </div>
       <div class="arch-item">
-        <h3>Evidence store</h3>
-        <p>Immutable, access controlled storage for transcripts, recordings, payloads, and proofs, with full chain of custody for legal and audit review.</p>
+        <h3 data-i18n="ar.6h">Evidence store</h3>
+        <p data-i18n="ar.6p">Immutable, access controlled storage for transcripts, recordings, payloads, and proofs, with full chain of custody for legal and audit review.</p>
       </div>
     </div>
   </div>
@@ -400,21 +406,21 @@
 <section class="section alt" id="trust">
   <div class="wrap split">
     <div class="split-copy">
-      <p class="eyebrow">Governance</p>
-      <h2>Powerful by design, safe by obligation</h2>
-      <p>A platform that can clone a voice and join a live call carries real responsibility. Cherubim treats authorization, consent, and restraint as core features, not paperwork.</p>
+      <p class="eyebrow" data-i18n="gv.ey">Governance</p>
+      <h2 data-i18n="gv.h">Powerful by design, safe by obligation</h2>
+      <p data-i18n="gv.p">A platform that can clone a voice and join a live call carries real responsibility. Cherubim treats authorization, consent, and restraint as core features, not paperwork.</p>
       <ul class="feature-list">
-        <li><strong>Authorization gate</strong>. No campaign starts without scoped, signed authorization from a named accountable owner.</li>
-        <li><strong>Consent and roster control</strong>. Cloned personas require explicit consent. Targeting respects defined rosters and exclusion lists.</li>
-        <li><strong>Built in restraint</strong>. Campaigns stand down on distress signals and never pursue real financial or data loss.</li>
-        <li><strong>Disclosure by default</strong>. Watermarked synthetic media and a clear post engagement reveal to everyone involved.</li>
-        <li><strong>Privacy aligned</strong>. Designed for regulated environments, with data residency and retention controls suited to Singapore and the wider region.</li>
+        <li data-i18n="gv.f1"><strong>Authorization gate</strong>. No campaign starts without scoped, signed authorization from a named accountable owner.</li>
+        <li data-i18n="gv.f2"><strong>Consent and roster control</strong>. Cloned personas require explicit consent. Targeting respects defined rosters and exclusion lists.</li>
+        <li data-i18n="gv.f3"><strong>Built in restraint</strong>. Campaigns stand down on distress signals and never pursue real financial or data loss.</li>
+        <li data-i18n="gv.f4"><strong>Disclosure by default</strong>. Watermarked synthetic media and a clear post engagement reveal to everyone involved.</li>
+        <li data-i18n="gv.f5"><strong>Privacy aligned</strong>. Designed for regulated environments, with data residency and retention controls suited to Singapore and the wider region.</li>
       </ul>
     </div>
     <aside class="split-visual">
       <div class="panel quote">
-        <p class="big-quote">Mercy and truth are not opposites. The kindest thing a guardian can do is tell you the truth before an enemy does.</p>
-        <p class="panel-foot">The principle behind Hesed &amp; Emet, built into Cherubim.</p>
+        <p class="big-quote" data-i18n="gv.q">Mercy and truth are not opposites. The kindest thing a guardian can do is tell you the truth before an enemy does.</p>
+        <p class="panel-foot" data-i18n="gv.qf">The principle behind Hesed &amp; Emet, built into Cherubim.</p>
       </div>
     </aside>
   </div>
@@ -423,20 +429,20 @@
 <section class="section" id="compliance">
   <div class="wrap">
     <header class="sec-head">
-      <p class="eyebrow">Compliance</p>
-      <h2>One click from attack proof to audit evidence.</h2>
-      <p class="sec-sub">Most teams run a test, then spend weeks translating findings into the language an auditor or a regulator accepts. Cherubim closes that gap. Every validated finding is mapped, in real time, to the control objectives of the frameworks you are held to, and assembled into an evidence pack you can hand over as is.</p>
+      <p class="eyebrow" data-i18n="cp.ey">Compliance</p>
+      <h2 data-i18n="cp.h">One click from attack proof to audit evidence.</h2>
+      <p class="sec-sub" data-i18n="cp.sub">Most teams run a test, then spend weeks translating findings into the language an auditor or a regulator accepts. Cherubim closes that gap. Every validated finding is mapped, in real time, to the control objectives of the frameworks you are held to, and assembled into an evidence pack you can hand over as is.</p>
     </header>
     <div class="arch">
-      <div class="arch-item"><h3>NIST CSF 2.0</h3><p>Findings mapped across Govern, Identify, Protect, Detect, Respond, and Recover, with SP 800-53 and 800-115 control references.</p></div>
-      <div class="arch-item"><h3>Singapore Cybersecurity Act</h3><p>Evidence aligned to Critical Information Infrastructure obligations and CSA audit and risk assessment expectations.</p></div>
-      <div class="arch-item"><h3>CSA Cyber Trust mark</h3><p>Coverage mapped to the risk based domains, so certification preparation becomes a report export, not a project.</p></div>
-      <div class="arch-item"><h3>CSA Cyber Essentials mark</h3><p>Direct evidence for the baseline measures, ideal for organisations on the first rung of the certification ladder.</p></div>
-      <div class="arch-item"><h3>ISO/IEC 27001:2022</h3><p>Annex A control mapping with reproducible proof attached to each applicable statement of applicability item.</p></div>
-      <div class="arch-item"><h3>MAS TRM Guidelines</h3><p>Penetration testing and adversarial attack simulation evidence formatted for financial sector supervisory review.</p></div>
-      <div class="arch-item"><h3>PDPA</h3><p>Demonstrated protection of personal data with attack path proof that controls hold under real adversary pressure.</p></div>
-      <div class="arch-item"><h3>MITRE ATT&amp;CK</h3><p>Every step of every proven attack path tagged to ATT&amp;CK techniques for defensive coverage analysis.</p></div>
-      <div class="arch-item"><h3>CIS Critical Controls</h3><p>Implementation Group mapping that shows which controls actually withstood the engagement and which did not.</p></div>
+      <div class="arch-item"><h3>NIST CSF 2.0</h3><p data-i18n="cp.1">Findings mapped across Govern, Identify, Protect, Detect, Respond, and Recover, with SP 800-53 and 800-115 control references.</p></div>
+      <div class="arch-item"><h3 data-i18n="cp.2h">Singapore Cybersecurity Act</h3><p data-i18n="cp.2">Evidence aligned to Critical Information Infrastructure obligations and CSA audit and risk assessment expectations.</p></div>
+      <div class="arch-item"><h3 data-i18n="cp.3h">CSA Cyber Trust mark</h3><p data-i18n="cp.3">Coverage mapped to the risk based domains, so certification preparation becomes a report export, not a project.</p></div>
+      <div class="arch-item"><h3 data-i18n="cp.4h">CSA Cyber Essentials mark</h3><p data-i18n="cp.4">Direct evidence for the baseline measures, ideal for organisations on the first rung of the certification ladder.</p></div>
+      <div class="arch-item"><h3>ISO/IEC 27001:2022</h3><p data-i18n="cp.5">Annex A control mapping with reproducible proof attached to each applicable statement of applicability item.</p></div>
+      <div class="arch-item"><h3>MAS TRM Guidelines</h3><p data-i18n="cp.6">Penetration testing and adversarial attack simulation evidence formatted for financial sector supervisory review.</p></div>
+      <div class="arch-item"><h3>PDPA</h3><p data-i18n="cp.7">Demonstrated protection of personal data with attack path proof that controls hold under real adversary pressure.</p></div>
+      <div class="arch-item"><h3>MITRE ATT&amp;CK</h3><p data-i18n="cp.8">Every step of every proven attack path tagged to ATT&amp;CK techniques for defensive coverage analysis.</p></div>
+      <div class="arch-item"><h3 data-i18n="cp.9h">CIS Critical Controls</h3><p data-i18n="cp.9">Implementation Group mapping that shows which controls actually withstood the engagement and which did not.</p></div>
     </div>
   </div>
 </section>
@@ -444,26 +450,26 @@
 <section class="section alt" id="audit">
   <div class="wrap split">
     <div class="split-copy">
-      <p class="eyebrow">One click audit</p>
-      <h2>Run the adversary. Export the audit.</h2>
-      <p>The audit pack is not a second exercise. It is generated from the same campaign that proved the findings, so the evidence an auditor reads is the exact proof Cherubim captured, with timestamps and chain of custody intact.</p>
+      <p class="eyebrow" data-i18n="au.ey">One click audit</p>
+      <h2 data-i18n="au.h">Run the adversary. Export the audit.</h2>
+      <p data-i18n="au.p">The audit pack is not a second exercise. It is generated from the same campaign that proved the findings, so the evidence an auditor reads is the exact proof Cherubim captured, with timestamps and chain of custody intact.</p>
       <ul class="feature-list">
-        <li><strong>Live control mapping</strong>. Each validated finding is tagged to every framework you select, as it is found.</li>
-        <li><strong>Evidence pack assembly</strong>. Proofs, payloads, transcripts, and remediation, bundled and signed.</li>
-        <li><strong>Auditor ready export</strong>. Structured output and a formatted report, accepted as is by assessors and regulators.</li>
-        <li><strong>Continuous attestation</strong>. Re run on a cadence so certification stays evidenced between audit cycles, not just at audit time.</li>
+        <li data-i18n="au.f1"><strong>Live control mapping</strong>. Each validated finding is tagged to every framework you select, as it is found.</li>
+        <li data-i18n="au.f2"><strong>Evidence pack assembly</strong>. Proofs, payloads, transcripts, and remediation, bundled and signed.</li>
+        <li data-i18n="au.f3"><strong>Auditor ready export</strong>. Structured output and a formatted report, accepted as is by assessors and regulators.</li>
+        <li data-i18n="au.f4"><strong>Continuous attestation</strong>. Re run on a cadence so certification stays evidenced between audit cycles, not just at audit time.</li>
       </ul>
     </div>
     <aside class="split-visual">
       <div class="panel">
-        <p class="panel-cap">One click audit pipeline</p>
+        <p class="panel-cap" data-i18n="au.cap">One click audit pipeline</p>
         <ol class="flow">
-          <li><span>Run</span><em>One authorized campaign across the stack</em></li>
-          <li><span>Map</span><em>Findings tagged to control objectives in real time</em></li>
-          <li><span>Assemble</span><em>Evidence pack with proof and chain of custody</em></li>
-          <li><span>Export</span><em>Auditor ready report for NIST, the Cybersecurity Act, Cyber Trust, and more</em></li>
+          <li><span data-i18n="au.n1a">Run</span><em data-i18n="au.n1b">One authorized campaign across the stack</em></li>
+          <li><span data-i18n="au.n2a">Map</span><em data-i18n="au.n2b">Findings tagged to control objectives in real time</em></li>
+          <li><span data-i18n="au.n3a">Assemble</span><em data-i18n="au.n3b">Evidence pack with proof and chain of custody</em></li>
+          <li><span data-i18n="au.n4a">Export</span><em data-i18n="au.n4b">Auditor ready report for NIST, the Cybersecurity Act, Cyber Trust, and more</em></li>
         </ol>
-        <p class="panel-foot">From engagement to evidence in one motion.</p>
+        <p class="panel-foot" data-i18n="au.foot">From engagement to evidence in one motion.</p>
       </div>
     </aside>
   </div>
@@ -472,28 +478,28 @@
 <section class="section" id="reporting">
   <div class="wrap split reverse">
     <div class="split-copy">
-      <p class="eyebrow">Executive reporting</p>
-      <h2>One truth, told the way each room needs to hear it.</h2>
-      <p>The same engagement produces every view automatically. The board sees risk and decisions. The auditor sees control evidence. Engineering sees a reproducible fix. Nobody re writes the story for a different audience, because there is only one story.</p>
+      <p class="eyebrow" data-i18n="rp.ey">Executive reporting</p>
+      <h2 data-i18n="rp.h">One truth, told the way each room needs to hear it.</h2>
+      <p data-i18n="rp.p">The same engagement produces every view automatically. The board sees risk and decisions. The auditor sees control evidence. Engineering sees a reproducible fix. Nobody re writes the story for a different audience, because there is only one story.</p>
       <ul class="feature-list">
-        <li><strong>Board pack</strong>. A one page narrative tying proven exposure to business impact, owners, and a decision to make.</li>
-        <li><strong>Posture score and residual risk</strong>. A defensible number with the evidence behind it, not a vendor opinion.</li>
-        <li><strong>Control coverage heatmap</strong>. What held, what failed, per framework, at a glance.</li>
-        <li><strong>Quarter over quarter trend lines</strong>. Proof to leadership that the programme is making the organisation harder to attack.</li>
-        <li><strong>Tailored exports</strong>. Board, CISO, engineering, and audit views from one source of truth.</li>
+        <li data-i18n="rp.f1"><strong>Board pack</strong>. A one page narrative tying proven exposure to business impact, owners, and a decision to make.</li>
+        <li data-i18n="rp.f2"><strong>Posture score and residual risk</strong>. A defensible number with the evidence behind it, not a vendor opinion.</li>
+        <li data-i18n="rp.f3"><strong>Control coverage heatmap</strong>. What held, what failed, per framework, at a glance.</li>
+        <li data-i18n="rp.f4"><strong>Quarter over quarter trend lines</strong>. Proof to leadership that the programme is making the organisation harder to attack.</li>
+        <li data-i18n="rp.f5"><strong>Tailored exports</strong>. Board, CISO, engineering, and audit views from one source of truth.</li>
       </ul>
     </div>
     <aside class="split-visual">
       <div class="panel report">
-        <div class="report-row"><span>Posture score</span><b>72 / 100</b></div>
+        <div class="report-row"><span data-i18n="rp.r1">Posture score</span><b>72 / 100</b></div>
         <div class="report-bar"><i style="width:72%"></i></div>
-        <div class="report-row"><span>NIST CSF 2.0 coverage</span><b>86%</b></div>
+        <div class="report-row"><span data-i18n="rp.r2">NIST CSF 2.0 coverage</span><b>86%</b></div>
         <div class="report-bar"><i style="width:86%"></i></div>
-        <div class="report-row"><span>Cyber Trust readiness</span><b>On track</b></div>
+        <div class="report-row"><span data-i18n="rp.r3">Cyber Trust readiness</span><b data-i18n="rp.r3b">On track</b></div>
         <div class="report-bar"><i style="width:78%"></i></div>
-        <div class="report-row"><span>Residual critical risk</span><b>Trending down</b></div>
+        <div class="report-row"><span data-i18n="rp.r4">Residual critical risk</span><b data-i18n="rp.r4b">Trending down</b></div>
         <div class="report-bar"><i style="width:22%"></i></div>
-        <p class="panel-foot">Board ready, auditor ready, from the same campaign.</p>
+        <p class="panel-foot" data-i18n="rp.foot">Board ready, auditor ready, from the same campaign.</p>
       </div>
     </aside>
   </div>
@@ -502,14 +508,14 @@
 <section class="section alt" id="outcomes">
   <div class="wrap">
     <header class="sec-head">
-      <p class="eyebrow">Outcomes</p>
-      <h2>What you actually get</h2>
+      <p class="eyebrow" data-i18n="oc.ey">Outcomes</p>
+      <h2 data-i18n="oc.h">What you actually get</h2>
     </header>
     <div class="outcomes">
-      <div><strong>Proven exposure</strong><p>A validated picture of how an adversary reaches impact across network, cloud, identity, and people, with the evidence to back every claim.</p></div>
-      <div><strong>Faster remediation</strong><p>Reproducible proofs of concept remove triage debate, so fixes ship instead of stalling in a backlog.</p></div>
-      <div><strong>Measurable resilience</strong><p>Trend lines that show leadership the organisation is genuinely harder to attack quarter over quarter.</p></div>
-      <div><strong>A confident board</strong><p>One narrative that turns technical and human risk into decisions an executive team can actually make.</p></div>
+      <div><strong data-i18n="oc.1h">Proven exposure</strong><p data-i18n="oc.1p">A validated picture of how an adversary reaches impact across network, cloud, identity, and people, with the evidence to back every claim.</p></div>
+      <div><strong data-i18n="oc.2h">Faster remediation</strong><p data-i18n="oc.2p">Reproducible proofs of concept remove triage debate, so fixes ship instead of stalling in a backlog.</p></div>
+      <div><strong data-i18n="oc.3h">Measurable resilience</strong><p data-i18n="oc.3p">Trend lines that show leadership the organisation is genuinely harder to attack quarter over quarter.</p></div>
+      <div><strong data-i18n="oc.4h">A confident board</strong><p data-i18n="oc.4p">One narrative that turns technical and human risk into decisions an executive team can actually make.</p></div>
     </div>
   </div>
 </section>
@@ -517,29 +523,29 @@
 <section class="section" id="faq">
   <div class="wrap">
     <header class="sec-head">
-      <p class="eyebrow">Questions</p>
-      <h2>Straight answers</h2>
+      <p class="eyebrow" data-i18n="fq.ey">Questions</p>
+      <h2 data-i18n="fq.h">Straight answers</h2>
     </header>
     <div class="faq">
       <details>
-        <summary>Is this safe to run against a live organisation?</summary>
-        <p>Yes, by design. Cherubim never pursues real loss. It demonstrates the path, captures the proof, and stops. Every engagement is gated by signed authorization, bounded by rosters and exclusion lists, and stands down on distress.</p>
+        <summary data-i18n="fq.q1">Is this safe to run against a live organisation?</summary>
+        <p data-i18n="fq.a1">Yes, by design. Cherubim never pursues real loss. It demonstrates the path, captures the proof, and stops. Every engagement is gated by signed authorization, bounded by rosters and exclusion lists, and stands down on distress.</p>
       </details>
       <details>
-        <summary>How is this different from a scanner with an AI label?</summary>
-        <p>A scanner reports possibilities. Cherubim reasons, exploits, and then proves the finding with a deterministic validator. If it cannot reproduce the exploit, it does not become a finding.</p>
+        <summary data-i18n="fq.q2">How is this different from a scanner with an AI label?</summary>
+        <p data-i18n="fq.a2">A scanner reports possibilities. Cherubim reasons, exploits, and then proves the finding with a deterministic validator. If it cannot reproduce the exploit, it does not become a finding.</p>
       </details>
       <details>
-        <summary>Do you really join live video calls with a deepfake?</summary>
-        <p>Under explicit authorization and consent, yes. Real time synthesis feeds a virtual camera and audio device into a scheduled Zoom, Teams, or Meet call. This mirrors a real and growing attacker technique, which is exactly why it must be tested.</p>
+        <summary data-i18n="fq.q3">Do you really join live video calls with a deepfake?</summary>
+        <p data-i18n="fq.a3">Under explicit authorization and consent, yes. Real time synthesis feeds a virtual camera and audio device into a scheduled Zoom, Teams, or Meet call. This mirrors a real and growing attacker technique, which is exactly why it must be tested.</p>
       </details>
       <details>
-        <summary>What about the people who fail a test?</summary>
-        <p>They are coached, not blamed. The truth goes to the board. Kindness goes to the team. That balance is the point of the platform.</p>
+        <summary data-i18n="fq.q4">What about the people who fail a test?</summary>
+        <p data-i18n="fq.a4">They are coached, not blamed. The truth goes to the board. Kindness goes to the team. That balance is the point of the platform.</p>
       </details>
       <details>
-        <summary>Can it run continuously instead of once a year?</summary>
-        <p>Yes. Continuous mode re tests on every release and on a defined cadence for the human surface, so resilience is measured, not assumed.</p>
+        <summary data-i18n="fq.q5">Can it run continuously instead of once a year?</summary>
+        <p data-i18n="fq.a5">Yes. Continuous mode re tests on every release and on a defined cadence for the human surface, so resilience is measured, not assumed.</p>
       </details>
     </div>
   </div>
@@ -547,11 +553,11 @@
 
 <section class="cta" id="contact">
   <div class="wrap cta-inner">
-    <p class="eyebrow">Request a briefing</p>
-    <h2>Meet the adversary on your terms.</h2>
-    <p class="lede">Bring Cherubim into a scoped engagement and see, with proof, exactly how a serious attacker would move through your code, your AI, and your people.</p>
-    <a class="btn" href="mailto:hello@hesedemet.asia?subject=Cherubim%20briefing%20request">Start the conversation</a>
-    <p class="cta-fine">A Hesed &amp; Emet platform. Advising where AI, cybersecurity, and human behaviour collide.</p>
+    <p class="eyebrow" data-i18n="ct.ey">Request a briefing</p>
+    <h2 data-i18n="ct.h">Meet the adversary on your terms.</h2>
+    <p class="lede" data-i18n="ct.p">Bring Cherubim into a scoped engagement and see, with proof, exactly how a serious attacker would move through your code, your AI, and your people.</p>
+    <a class="btn" href="mailto:hello@hesedemet.asia?subject=Cherubim%20briefing%20request" data-i18n="ct.btn">Start the conversation</a>
+    <p class="cta-fine" data-i18n="ct.fine">A Hesed &amp; Emet platform. Advising where AI, cybersecurity, and human behaviour collide.</p>
   </div>
 </section>
 </main>
@@ -570,18 +576,23 @@
       <span>Cherubim</span>
     </div>
     <nav class="footer-links" aria-label="Footer">
-      <a href="#platform">Platform</a>
-      <a href="#offensive">Offensive Engine</a>
-      <a href="#stack">Full Stack</a>
-      <a href="#social">Social Engineering</a>
-      <a href="#trust">Governance</a>
-      <a href="#compliance">Compliance</a>
-      <a href="#contact">Contact</a>
+      <a href="#platform" data-i18n="nav.platform">Platform</a>
+      <a href="#offensive" data-i18n="nav.offensive">Offensive Engine</a>
+      <a href="#stack" data-i18n="nav.stack">Full Stack</a>
+      <a href="#social" data-i18n="nav.social">Social Engineering</a>
+      <a href="#trust" data-i18n="nav.gov">Governance</a>
+      <a href="#compliance" data-i18n="nav.compliance">Compliance</a>
+      <a href="#contact" data-i18n="ft.contact">Contact</a>
     </nav>
-    <p class="footer-fine">Cherubim by Hesed &amp; Emet. Built for authorized adversary simulation only. <span id="year"></span></p>
+    <p class="footer-fine">
+      <span data-i18n="ft.fine">Cherubim by Hesed &amp; Emet. Built for authorized adversary simulation only.</span><br/>
+      Hesed &amp; Emet Advisory Pte Ltd &middot; #42-00, Suntec Tower Three, 8 Temasek Blvd, Singapore 038988 &middot; +65 6829 2146<br/>
+      &copy; <span id="year"></span> Hesed &amp; Emet Advisory Pte Ltd. All rights reserved.
+    </p>
   </div>
 </footer>
 
+<script src="assets/js/i18n.js"></script>
 <script src="assets/js/main.js"></script>
 </body>
 </html>

@@ -913,13 +913,14 @@
   }
   function fakeDl(name) {
     try {
-      var a = document.createElement("a"), body = "Cherubim export: " + name + "\nOrganisation: " + ORG + "\nGenerated: " + new Date().toISOString() + "\nPosture " + state.posture + "/100, findings deterministically validated.\nThis is simulated demo content.";
+      var a = document.createElement("a"), body = "Cherubim export: " + name + "\nOrganisation: " + ORG + "\nGenerated: " + new Date().toISOString() + "\nPosture " + state.posture + "/100, findings deterministically validated.";
       a.href = "data:text/plain;charset=utf-8," + encodeURIComponent(body);
       a.download = name.toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".txt"; a.click();
     } catch (e) {}
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    var dy = document.getElementById("dyear"); if (dy) dy.textContent = new Date().getFullYear();
     route();
     window.addEventListener("hashchange", route);
     $$(".nav-item").forEach(function (n) { n.onclick = function () { location.hash = "#/" + n.getAttribute("data-r"); }; });
@@ -933,7 +934,7 @@
     var mb = $("#menuBtn"); if (mb) mb.onclick = function () { $("#side").classList.toggle("open"); };
     var gs = $("#globalSearch");
     if (gs) gs.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && gs.value.trim()) { toast("Search", 'No exact match for "' + esc(gs.value.trim()) + '" in demo data. Try Findings or Attack surface.'); }
+      if (e.key === "Enter" && gs.value.trim()) { toast("Search", 'No exact match for "' + esc(gs.value.trim()) + '". Try Findings or Attack surface.'); }
     });
   });
 })();

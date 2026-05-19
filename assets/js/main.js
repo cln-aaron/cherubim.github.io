@@ -5,7 +5,7 @@
 
   // Year
   var y = document.getElementById("year");
-  if (y) y.textContent = "© " + new Date().getFullYear();
+  if (y) y.textContent = new Date().getFullYear();
 
   // Mobile nav
   var nav = document.getElementById("nav");

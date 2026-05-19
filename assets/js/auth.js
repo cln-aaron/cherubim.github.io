@@ -1,6 +1,9 @@
 (function () {
   "use strict";
 
+  var ly = document.getElementById("lyear");
+  if (ly) ly.textContent = new Date().getFullYear();
+
   // Cursor glow (shared behaviour)
   var glow = document.getElementById("glow");
   if (glow && window.matchMedia("(pointer:fine)").matches &&
