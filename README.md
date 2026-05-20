@@ -29,11 +29,14 @@ source of truth.
 
 ## Stack
 
-Static site for GitHub Pages. No build step.
+Static site, no build step. Served at https://cherubim.hesedemet.asia
 
-- `index.html` &mdash; single page
+- `index.html` &mdash; marketing single page
+- `login.html` &mdash; console sign in
+- `console/` &mdash; the operating console
 - `assets/css/styles.css` &mdash; brand system and layout
 - `assets/js/main.js` &mdash; mobile nav and scroll reveal
+- `assets/js/i18n.js` &mdash; language switcher (EN, zh-Hans, zh-Hant, ko)
 - `assets/img/favicon.svg` &mdash; mark
 
 ## Run locally

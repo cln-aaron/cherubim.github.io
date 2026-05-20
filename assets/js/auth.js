@@ -44,7 +44,7 @@
     if (err) err.textContent = "";
     var btn = document.querySelector(".auth-btn");
     if (btn) { btn.textContent = "Authenticating"; btn.classList.add("loading"); }
-    setTimeout(function () { location.href = "demo/index.html"; }, 850);
+    setTimeout(function () { location.href = "console/index.html"; }, 850);
   }
 
   var form = document.getElementById("loginForm");

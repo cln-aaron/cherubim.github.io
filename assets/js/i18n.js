@@ -5,7 +5,7 @@
     "zh-Hans": {
       "nav.platform": "平台", "nav.offensive": "引擎", "nav.stack": "全栈覆盖",
       "nav.social": "社会工程", "nav.arch": "架构", "nav.gov": "治理",
-      "nav.compliance": "合规", "nav.signin": "登录", "nav.demo": "进入控制台",
+      "nav.compliance": "合规", "nav.signin": "登录", "nav.demo": "登录",
 
       "hero.eyebrow": "[ 一款 Hesed &amp; Emet 平台 ]",
       "hero.l1": "我们<i>先</i>发起攻击。",
@@ -178,7 +178,7 @@
     "zh-Hant": {
       "nav.platform": "平台", "nav.offensive": "引擎", "nav.stack": "全端覆蓋",
       "nav.social": "社交工程", "nav.arch": "架構", "nav.gov": "治理",
-      "nav.compliance": "合規", "nav.signin": "登入", "nav.demo": "進入主控台",
+      "nav.compliance": "合規", "nav.signin": "登入", "nav.demo": "登入",
 
       "hero.eyebrow": "[ 一款 Hesed &amp; Emet 平台 ]",
       "hero.l1": "我們<i>先</i>發動攻擊。",
@@ -351,7 +351,7 @@
     "ko": {
       "nav.platform": "플랫폼", "nav.offensive": "엔진", "nav.stack": "풀스택",
       "nav.social": "사회공학", "nav.arch": "아키텍처", "nav.gov": "거버넌스",
-      "nav.compliance": "컴플라이언스", "nav.signin": "로그인", "nav.demo": "콘솔 열기",
+      "nav.compliance": "컴플라이언스", "nav.signin": "로그인", "nav.demo": "로그인",
 
       "hero.eyebrow": "[ Hesed &amp; Emet 플랫폼 ]",
       "hero.l1": "우리가 <i>먼저</i> 공격합니다.",

@@ -1,10 +1,10 @@
 User-agent: *
 Allow: /$
 Allow: /index.html
-Disallow: /demo/
+Disallow: /console/
 Disallow: /login.html
 
 # Generative engines welcome to read the summary
 Allow: /llms.txt
 
-Sitemap: https://cherubim.github.io/sitemap.xml
+Sitemap: https://cherubim.hesedemet.asia/sitemap.xml

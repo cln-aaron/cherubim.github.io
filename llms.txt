@@ -37,5 +37,5 @@ to Aegis, the same company's AI security operations platform.
 
 ## Links
 
-- Site: https://cherubim.github.io/
+- Site: https://cherubim.hesedemet.asia/
 - Parent advisory: https://www.hesedemet.asia
