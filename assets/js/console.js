@@ -1,11 +1,11 @@
 (function () {
   "use strict";
   try {
-    if (sessionStorage.getItem("cherubim_auth") !== "1") { location.replace("../login.html"); return; }
+    if (sessionStorage.getItem("cb_s") !== "1") { location.replace("../login.html"); return; }
   } catch (e) {}
   var USER = { name: "Aaron Ang", email: "aaron@hesedemet.asia", initials: "AA" };
   try {
-    var u = JSON.parse(sessionStorage.getItem("cherubim_user") || "null");
+    var u = JSON.parse(atob(sessionStorage.getItem("cb_u") || "") || "null");
     if (u && u.name) USER = u;
   } catch (e) {}
 
@@ -1160,7 +1160,7 @@
     var um = $("#userMenu"), up = $("#userPop");
     um.onclick = function (e) { e.stopPropagation(); up.classList.toggle("open"); };
     document.addEventListener("click", function () { up.classList.remove("open"); });
-    $("#logout").onclick = function () { try { sessionStorage.removeItem("cherubim_auth"); sessionStorage.removeItem("cherubim_user"); } catch (e) {} location.href = "../login.html"; };
+    $("#logout").onclick = function () { try { sessionStorage.removeItem("cb_s"); sessionStorage.removeItem("cb_u"); } catch (e) {} location.href = "../login.html"; };
     var mb = $("#menuBtn"); if (mb) mb.onclick = function () { $("#side").classList.toggle("open"); };
     var gs = $("#globalSearch");
     if (gs) gs.addEventListener("keydown", function (e) {
