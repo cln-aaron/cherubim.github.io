@@ -291,6 +291,59 @@
       '</div></div>';
   }
 
+  function vAgents() {
+    var agents = [
+      ["planner", "Orchestrator", "run", "Decomposing objective: reach crown jewel", "goal-graph"],
+      ["agent.recon", "Reconnaissance", "ok", "Mapped 1,284 assets across 7 surfaces", "nmap, amass"],
+      ["agent.network", "Network", "run", "NTLM relay path under evaluation", "Responder, CrackMapExec"],
+      ["agent.web", "Web & API", "ok", "Proved settlement logic bypass", "Burp engine, ffuf"],
+      ["agent.cloud", "Cloud & K8s", "run", "Assuming node role via IMDS", "ScoutSuite, kube-hunter"],
+      ["agent.identity", "Identity & AD", "run", "Kerberoast and delegation review", "BloodHound, impacket"],
+      ["agent.exploit", "Exploitation", "ok", "Built PoC for F-3303", "msf modules, custom"],
+      ["validator", "Validation", "run", "Reproducing F-3304 in sandbox", "deterministic replay"],
+      ["agent.social", "Social engineering", "idle", "Awaiting authorization for CMP-2044", "narrative engine"],
+      ["agent.report", "Reporting", "idle", "Compliance mapping queued", "framework mapper"]
+    ];
+    var tools = [
+      ["nmap", "Recon", 412, "ok"], ["amass", "Recon", 88, "ok"], ["Burp engine", "Web / API", 256, "ok"],
+      ["ffuf", "Web / API", 1903, "ok"], ["BloodHound", "Identity", 31, "ok"], ["impacket", "Identity", 64, "ok"],
+      ["Responder", "Network", 12, "run"], ["CrackMapExec", "Network", 47, "ok"], ["ScoutSuite", "Cloud", 19, "ok"],
+      ["kube-hunter", "Cloud", 23, "run"], ["trufflehog", "Supply chain", 140, "ok"], ["deterministic validator", "Validation", 38, "run"],
+      ["voice clone", "Synthetic media", 4, "idle"], ["face synthesis", "Synthetic media", 2, "idle"]
+    ];
+    var plan = [
+      ["Establish foothold on the perimeter", "done", [["Enumerate internet facing services", "done"], ["Exploit exposed Jenkins", "done"]]],
+      ["Recover and reuse credentials", "done", [["Harvest CI secrets", "done"], ["Validate against identity provider", "done"]]],
+      ["Move laterally to the identity subnet", "run", [["Map trust relationships", "done"], ["Relay to file server", "run"], ["Pivot to 10.4.12.0/24", "run"]]],
+      ["Escalate to Domain Admin", "run", [["Abuse unconstrained delegation", "run"], ["Forge service ticket", "queued"]]],
+      ["Prove impact, then stop", "queued", [["Reach customer statement store", "queued"], ["Demonstrate exfiltration path", "queued"], ["Seal evidence and stand down", "queued"]]]
+    ];
+    function dot(s) { return '<span class="dotp ' + (s === "run" ? "run" : (s === "ok" || s === "done") ? "ok" : "idle") + '"></span>'; }
+    function pStat(s) { return s === "done" ? '<span class="st-ok">done</span>' : s === "run" ? '<span class="st-run">running</span>' : '<span class="st-mut">queued</span>'; }
+
+    return '<div class="view-head"><div><span class="eyebrow">Agent mesh</span><h1>Multi-agent orchestration</h1>' +
+      '<p>A planner decomposes the objective, a fleet of specialised agents executes through a typed tool interface, and the plan replans live as the environment responds.</p></div></div>' +
+      '<div class="stat-row">' + statCard("Agents in fleet", agents.length, "", "role specialised") +
+        statCard("Tools registered", tools.length, "", "typed, audited, MCP style") +
+        statCard("Plan depth", "5 / 12", "", "goals / tasks") +
+        statCard("Actions this run", "2,418", "up", "across the fleet") + '</div>' +
+      '<div class="grid-2"><div class="card-p"><h3>Agent fleet, coordinated</h3><p class="sub">Shared world model, supervisor arbitration, live artifact handoff</p>' +
+      '<table class="tbl"><thead><tr><th>Agent</th><th>Role</th><th>Status</th><th>Current task</th><th>Tools</th></tr></thead><tbody>' +
+      agents.map(function (a) {
+        return '<tr><td class="mono">' + a[0] + '</td><td>' + a[1] + '</td><td>' + dot(a[2]) + (a[2] === "run" ? "working" : a[2] === "ok" ? "ready" : "idle") + '</td><td class="st-mut">' + a[3] + '</td><td class="mono" style="color:var(--gold)">' + a[4] + '</td></tr>';
+      }).join("") + '</tbody></table></div>' +
+      '<div class="card-p"><h3>Long-horizon plan</h3><p class="sub">Objective, subgoals, tasks. Replans as it learns.</p><div class="plan">' +
+      plan.map(function (g) {
+        return '<div class="plan-goal">' + dot(g[1]) + '<b>' + g[0] + '</b>' + pStat(g[1]) + '</div>' +
+          g[2].map(function (t) { return '<div class="plan-task">' + dot(t[1]) + '<span>' + t[0] + '</span>' + pStat(t[1]) + '</div>'; }).join("");
+      }).join("") + '</div></div></div>' +
+      '<div class="card-p span2" style="margin-top:14px"><h3>Tool integration</h3><p class="sub">Every capability is a registered tool with a schema, permissions and an audit record</p>' +
+      '<table class="tbl"><thead><tr><th>Tool</th><th>Category</th><th>Calls this run</th><th>State</th></tr></thead><tbody>' +
+      tools.map(function (t) {
+        return '<tr><td class="mono" style="color:var(--gold)">' + t[0] + '</td><td>' + t[1] + '</td><td class="mono">' + t[2].toLocaleString() + '</td><td>' + dot(t[3]) + (t[3] === "run" ? "in use" : t[3] === "ok" ? "ready" : "standby") + '</td></tr>';
+      }).join("") + '</tbody></table></div>';
+  }
+
   function vFindings() {
     return '<div class="view-head"><div><span class="eyebrow">Findings</span><h1>Validated findings</h1>' +
       '<p>Every finding was reproduced by a deterministic validator. No proof, no finding.</p></div></div>' +
@@ -391,7 +444,7 @@
 
   /* ============================ ROUTER ============================ */
   var views = {
-    overview: vOverview, campaigns: vCampaigns, campaign: vCampaign, surface: vSurface, paths: vPaths,
+    overview: vOverview, campaigns: vCampaigns, campaign: vCampaign, surface: vSurface, paths: vPaths, agents: vAgents,
     findings: vFindings, social: vSocial, compliance: vCompliance, report: vReport, connectors: vConnectors, settings: vSettings
   };
   var tickerIv;
@@ -1007,6 +1060,7 @@
       [/(campaign list|all campaign|campaigns)/, "#/campaigns", "campaigns"],
       [/(attack surface|asset|inventory|connected stack)/, "#/surface", "the attack surface"],
       [/(attack path|kill chain)/, "#/paths", "the proven attack path"],
+      [/(agent mesh|orchestration|multi.?agent|planning|plan tree|tool integration|agent fleet)/, "#/agents", "the agent mesh"],
       [/(finding|vulnerab|cve|exposure)/, "#/findings", "findings"],
       [/(social|phishing result|human risk)/, "#/social", "social engineering results"],
       [/(compliance|framework|nist|iso|pdpa|cyber trust)/, "#/compliance", "compliance"],
