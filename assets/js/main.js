@@ -100,4 +100,54 @@
   } else {
     targets.forEach(function (el) { el.classList.add("in"); });
   }
+
+  // Product showcase animation
+  var feed = document.getElementById("showFeed");
+  if (feed) {
+    var lines = [
+      "agent.recon mapped 1,284 assets",
+      "agent.web proved logic bypass on payments",
+      "validator reproduced F-3303 (3x)",
+      "agent.identity recovered CI credential",
+      "agent.cloud assumed node role via IMDS",
+      "narrative.engine escalated vishing scenario",
+      "agent.privesc reached Domain Admin, stopped",
+      "compliance.map tagged finding to NIST",
+      "coach delivered a 3 min lesson on Teams"
+    ];
+    var fi = 0;
+    function feedAdd() {
+      var t = new Date(Date.now() - (6 - (fi % 6)) * 3000)
+        .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      var d = document.createElement("div");
+      d.innerHTML = "<span class='t'>" + t + "</span> " + lines[fi % lines.length];
+      feed.insertBefore(d, feed.firstChild);
+      while (feed.children.length > 7) feed.removeChild(feed.lastChild);
+      fi++;
+    }
+    for (var k = 0; k < 6; k++) feedAdd();
+    if (!reduce) setInterval(feedAdd, 2600);
+
+    var mocks = document.querySelectorAll("[data-mock]");
+    var ran = false;
+    function runCount() {
+      if (ran) return; ran = true;
+      mocks.forEach(function (el) {
+        var target = parseInt(el.textContent, 10); if (isNaN(target)) return;
+        if (reduce) return;
+        var n = 0, step = Math.max(1, Math.ceil(target / 24));
+        el.textContent = "0";
+        var t = setInterval(function () {
+          n += step; if (n >= target) { n = target; clearInterval(t); }
+          el.textContent = String(n);
+        }, 34);
+      });
+    }
+    if ("IntersectionObserver" in window) {
+      var so = new IntersectionObserver(function (en) {
+        en.forEach(function (e) { if (e.isIntersecting) { runCount(); so.disconnect(); } });
+      }, { threshold: 0.3 });
+      so.observe(feed);
+    } else { runCount(); }
+  }
 })();

@@ -463,3 +463,43 @@
 .plan-task span{flex:1}
 .plan-goal .st-ok,.plan-goal .st-run,.plan-goal .st-mut,
 .plan-task .st-ok,.plan-task .st-run,.plan-task .st-mut{font-family:var(--mono);font-size:10.5px}
+
+/* ===== Coaching delivery previews ===== */
+.dp{border:1px solid var(--line-soft);border-radius:8px;overflow:hidden;background:#0c0f16;font-size:13px}
+.dp-h{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line-soft)}
+.dp-logo{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;font-weight:700;color:#fff;font-size:15px}
+.dp-logo.tm{background:#5b5fc7}.dp-logo.sl{background:#4a154b}
+.dp-h b{color:var(--text);font-size:13px;display:block}
+.dp-h span{color:var(--muted);font-size:11px;font-family:var(--mono)}
+.dp-b{padding:14px}
+.dp-b>b{color:var(--text)}
+.dp-b p{color:var(--muted);font-size:12.5px;line-height:1.6;margin:6px 0 12px}
+.dp-card{border:1px solid var(--line-soft);border-radius:7px;padding:13px}
+.dp-card b{color:var(--text);font-size:13px;display:block}
+.dp-card span{color:var(--muted);font-size:11px;font-family:var(--mono)}
+.dp-btn{display:inline-block;margin-top:11px;background:var(--gold);color:#120c00;font-weight:600;font-size:12px;
+  padding:8px 15px;border-radius:6px}
+.dp-mail .dp-mh{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line-soft)}
+.dp-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#8a6d2f);color:#120c00;display:grid;place-items:center;font-weight:700;font-size:13px}
+.dp-mh b{color:var(--text);font-size:13px;display:block}.dp-mh span{color:var(--muted);font-size:11px;font-family:var(--mono)}
+.dp-subj{padding:12px 14px 0;color:var(--text);font-weight:600;font-size:13px}
+.dp-fine{font-size:10.5px;color:var(--faint)}
+.dp-sms{background:none;border:0}
+.dp-sms .dp-bubble{background:#1c6b4f;color:#eafff5;padding:11px 14px;border-radius:14px 14px 14px 3px;font-size:12.5px;line-height:1.5;max-width:300px}
+.dp-sms .dp-time{display:block;color:var(--faint);font-size:10px;font-family:var(--mono);margin-top:5px}
+
+/* ===== Guided tour ===== */
+.tour-spot{position:fixed;z-index:200;border:2px solid var(--gold);border-radius:8px;
+  box-shadow:0 0 0 9999px rgba(4,6,12,.74);pointer-events:none;transition:all .35s var(--ease)}
+.tour-tip{position:fixed;z-index:201;width:300px;max-width:calc(100vw - 32px);background:var(--ink-2);
+  border:1px solid var(--line);border-radius:10px;padding:18px;box-shadow:0 24px 60px -20px rgba(0,0,0,.8);
+  transition:all .35s var(--ease)}
+.tour-tip .tt-step{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.tour-tip h4{font-family:var(--sans);font-size:18px;color:var(--paper);margin-bottom:7px}
+.tour-tip p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+.tour-tip .tt-row{display:flex;align-items:center;gap:10px}
+.tour-tip .tt-skip{margin-right:auto;background:none;border:0;color:var(--muted);font:inherit;font-size:12px;cursor:pointer}
+.tour-tip .tt-skip:hover{color:var(--text)}
+.tour-dots{display:flex;gap:5px;margin-right:auto}
+.tour-dots i{width:6px;height:6px;border-radius:50%;background:var(--line-strong);display:inline-block}
+.tour-dots i.on{background:var(--gold)}

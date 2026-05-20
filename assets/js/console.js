@@ -442,10 +442,174 @@
       '<div class="frm"><label>Accountable owner</label><input type="text" value="Aaron Ang" readonly></div></div></div>';
   }
 
+  /* ============================ COACHING ============================ */
+  var LESSONS = [
+    { id: "L01", t: "Spotting payment redirection fraud", topic: "Finance", min: 3, lvel: "Core", aud: "Finance, AP", tied: "Phishing and BEC",
+      obj: ["Recognise a forged supplier or executive payment request", "Verify changes to bank details out of band", "Know the one step that stops the loss"],
+      mod: ["Why finance is the target", "Three tells in a redirection email", "The call back rule", "Quick check before you pay"] },
+    { id: "L02", t: "Verifying urgent executive requests", topic: "Executive", min: 4, lvel: "Core", aud: "All staff", tied: "BEC and deepfake",
+      obj: ["Slow down on urgency and secrecy", "Confirm identity on a trusted channel", "Escalate without fear of getting it wrong"],
+      mod: ["The urgency trap", "Voice and video can lie now", "Your verification playbook", "Reporting in 30 seconds"] },
+    { id: "L03", t: "Phishing link red flags", topic: "Phishing", min: 3, lvel: "Core", aud: "All staff", tied: "Phishing email",
+      obj: ["Read a link before you click", "Spot lookalike domains", "Use the report button"],
+      mod: ["Hover, read, decide", "Lookalike domains", "Attachments and QR codes", "Report and move on"] },
+    { id: "L04", t: "MFA fatigue and push bombing", topic: "Identity", min: 3, lvel: "Core", aud: "All staff", tied: "Identity",
+      obj: ["Understand why approvals get spammed", "Never approve a prompt you did not start", "Move to phishing resistant MFA"],
+      mod: ["What push bombing feels like", "Deny and report", "Number matching", "Passkeys explained"] },
+    { id: "L05", t: "Voice clone and vishing awareness", topic: "Voice", min: 4, lvel: "Core", aud: "Finance, Helpdesk", tied: "Vishing",
+      obj: ["Know that a familiar voice can be cloned", "Resist pressure on a call", "Verify before you act"],
+      mod: ["How voice cloning works", "Pressure tactics on calls", "The safe word and call back", "When to hang up"] },
+    { id: "L06", t: "Deepfake video on calls", topic: "Deepfake", min: 5, lvel: "Advanced", aud: "Executives, Finance", tied: "Live deepfake",
+      obj: ["Understand live face and voice synthesis", "Use liveness checks in a meeting", "Confirm high risk actions off the call"],
+      mod: ["Deepfakes in meetings", "Liveness checks that work", "Out of band confirmation", "Reporting a suspected fake"] },
+    { id: "L07", t: "Helpdesk identity verification", topic: "Process", min: 5, lvel: "Advanced", aud: "IT Helpdesk", tied: "Helpdesk",
+      obj: ["Apply strict verification before reset", "Detect social pressure and pretext", "Follow the MFA recovery policy"],
+      mod: ["The helpdesk is a target", "Verify the human", "Resisting urgency", "Recovery done right"] },
+    { id: "L08", t: "Handling sensitive data and PDPA basics", topic: "Data", min: 4, lvel: "Core", aud: "All staff", tied: "Data handling",
+      obj: ["Classify what you hold", "Share on approved channels only", "Report a possible exposure quickly"],
+      mod: ["What counts as personal data", "Safe sharing", "Storage and retention", "If something leaks"] },
+    { id: "L09", t: "Passwords and passkeys", topic: "Identity", min: 3, lvel: "Core", aud: "All staff", tied: "Credentials",
+      obj: ["Stop reusing passwords", "Use a manager and passkeys", "Recognise credential capture pages"],
+      mod: ["Why reuse is fatal", "Managers and passkeys", "Spotting a fake login page", "Recover an account safely"] },
+    { id: "L10", t: "Secrets in CI and code", topic: "Engineering", min: 6, lvel: "Advanced", aud: "Engineering", tied: "Supply chain",
+      obj: ["Keep secrets out of repos and logs", "Use short lived tokens", "Rotate and alert on exposure"],
+      mod: ["Where secrets leak", "Short lived OIDC tokens", "Scanning and pre commit", "Rotation and response"] },
+    { id: "L11", t: "Cloud least privilege basics", topic: "Cloud", min: 5, lvel: "Advanced", aud: "Cloud, Platform", tied: "Cloud",
+      obj: ["Scope roles to the task", "Avoid wildcard permissions", "Protect the metadata service"],
+      mod: ["Blast radius", "Right sizing roles", "IMDSv2 and network policy", "Reviewing access"] },
+    { id: "L12", t: "Report it fast", topic: "Reporting", min: 2, lvel: "Core", aud: "All staff", tied: "All",
+      obj: ["Find the report button", "Know what to include", "Understand there is no penalty for reporting"],
+      mod: ["One button, one minute", "What helps the team", "No blame, ever"] }
+  ];
+
+  var coachCfg = {
+    channel: "Microsoft Teams",
+    trigger: "When a learner falls for a security test",
+    timing: "Within 5 minutes",
+    cadence: "Once, then a 30 day refresher",
+    campaign: "CMP-2044",
+    audience: "Affected learners only",
+    maxWeek: 2,
+    managerCc: false,
+    language: "Learner's preference"
+  };
+  var coachEnroll = [
+    ["Priya N.", "Clicked a phishing link", "L03", "Microsoft Teams", "Completed", "2 days ago"],
+    ["Marcus T.", "Entered credentials on capture page", "L09", "Microsoft Teams", "In progress", "today"],
+    ["Wei L.", "Approved an MFA prompt", "L04", "Slack", "Sent", "today"],
+    ["Helpdesk team", "Reset without verification", "L07", "Outlook", "Assigned", "today"],
+    ["Lena T. (CFO)", "Joined a deepfake test call", "L06", "Microsoft Teams", "Completed", "1 week ago"]
+  ];
+
+  function lessonById(id) { return LESSONS.filter(function (l) { return l.id === id; })[0]; }
+
+  function deliveryPreview(lesson) {
+    var first = "Priya", ch = coachCfg.channel;
+    var line = "During a recent security exercise a risky message slipped past. Here is a " + lesson.min + " minute refresher so the next one does not. No blame, just a quick win.";
+    if (ch === "Slack") {
+      return '<div class="dp dp-slack"><div class="dp-h"><span class="dp-logo sl">#</span><div><b>Cherubim Coach</b><span>app &middot; security-coaching</span></div></div>' +
+        '<div class="dp-b"><b>Hi ' + first + '</b><p>' + line + '</p><div class="dp-card"><b>' + esc(lesson.t) + '</b><span>' + lesson.min + ' min &middot; ' + lesson.lvel + '</span><div class="dp-btn">Start lesson</div></div></div></div>';
+    }
+    if (ch === "Outlook" || ch === "Email") {
+      return '<div class="dp dp-mail"><div class="dp-mh"><div class="dp-av">C</div><div><b>Cherubim Coach</b><span>coach@northwind.io</span></div></div>' +
+        '<div class="dp-subj">A 3 minute win after today\'s security check</div><div class="dp-b"><b>Hi ' + first + '</b><p>' + line + '</p><div class="dp-btn">Start the ' + lesson.min + ' min lesson</div><p class="dp-fine">Sent by your security team. Replies are not monitored.</p></div></div>';
+    }
+    if (ch === "SMS") {
+      return '<div class="dp dp-sms"><div class="dp-bubble">Northwind Security: nice catch opportunity. A ' + lesson.min + ' min refresher on ' + lesson.topic.toLowerCase() + ' is ready: nw.io/learn/' + lesson.id + '</div><span class="dp-time">delivered</span></div>';
+    }
+    return '<div class="dp dp-teams"><div class="dp-h"><span class="dp-logo tm">T</span><div><b>Cherubim Coach</b><span>Microsoft Teams &middot; Chat</span></div></div>' +
+      '<div class="dp-b"><b>Hi ' + first + '</b><p>' + line + '</p><div class="dp-card"><b>' + esc(lesson.t) + '</b><span>' + lesson.min + ' min &middot; ' + lesson.lvel + ' &middot; ' + lesson.topic + '</span><div class="dp-btn">Start lesson</div></div></div></div>';
+  }
+
+  var coachPreviewId = "L03";
+  function vCoaching() {
+    var topics = ["All"]; LESSONS.forEach(function (l) { if (topics.indexOf(l.topic) < 0) topics.push(l.topic); });
+    var done = coachEnroll.filter(function (e) { return e[4] === "Completed"; }).length;
+    return '<div class="view-head"><div><span class="eyebrow">Human resilience</span><h1>Blame-free coaching</h1>' +
+      '<p>Turn a moment someone slips into a two minute win. Load lessons, choose how and when they reach people, and deliver bite-size training on the channels they already use.</p></div>' +
+      '<div class="head-actions"><button class="btn-mini" id="coachAssignAll">Coach affected learners</button></div></div>' +
+      '<div class="stat-row">' + statCard("Lessons in library", LESSONS.length, "", "ready to deliver") +
+        statCard("Learners coached", "486", "up", "this quarter") +
+        statCard("Completion rate", "91%", "up", "median 3 min") +
+        statCard("Repeat failures", "down 38%", "down", "after coaching") + '</div>' +
+      '<div class="grid-2"><div class="card-p"><h3>Coaching library</h3><p class="sub">Click a lesson to preview the content and how it lands</p>' +
+      '<div class="chips" id="coachChips">' + topics.map(function (t, i) { return '<span class="chip' + (i === 0 ? " on" : "") + '" data-ct="' + t + '">' + t + '</span>'; }).join("") + '</div>' +
+      '<table class="tbl"><thead><tr><th>Lesson</th><th>Topic</th><th>Length</th><th>Audience</th></tr></thead><tbody id="lessonBody"></tbody></table></div>' +
+      '<div class="card-p"><h3>Delivery</h3><p class="sub">How, when and to whom. Defaults are scoped to the selected campaign so nobody is over messaged.</p>' +
+      '<div class="frm"><label>Channel</label><select id="cfChannel">' + ["Microsoft Teams", "Slack", "Outlook", "SMS"].map(function (o) { return '<option ' + (coachCfg.channel === o ? "selected" : "") + '>' + o + '</option>'; }).join("") + '</select></div>' +
+      '<div class="frm"><label>Trigger</label><select id="cfTrigger">' + ["When a learner falls for a security test", "When a learner clicks a link", "When a learner enters credentials", "On a fixed monthly cadence", "Manually assigned"].map(function (o) { return '<option ' + (coachCfg.trigger === o ? "selected" : "") + '>' + o + '</option>'; }).join("") + '</select></div>' +
+      '<div class="frm"><label>Timing</label><select id="cfTiming">' + ["Within 5 minutes", "At end of day", "Next morning", "Within the hour"].map(function (o) { return '<option ' + (coachCfg.timing === o ? "selected" : "") + '>' + o + '</option>'; }).join("") + '</select></div>' +
+      '<div class="frm"><label>Source campaign</label><select id="cfCampaign">' + state.campaigns.map(function (c) { return '<option value="' + c.id + '" ' + (coachCfg.campaign === c.id ? "selected" : "") + '>' + c.id + ' &middot; ' + esc(c.name) + '</option>'; }).join("") + '</select></div>' +
+      '<div class="frm"><label>Audience</label><select id="cfAudience">' + ["Affected learners only", "Affected learners and their team", "Whole department", "Entire roster"].map(function (o) { return '<option ' + (coachCfg.audience === o ? "selected" : "") + '>' + o + '</option>'; }).join("") + '</select></div>' +
+      '<div class="frm"><label>Frequency cap <span class="range-val" id="cfMaxL">' + coachCfg.maxWeek + ' lessons / learner / week</span></label><input type="range" id="cfMax" min="1" max="5" value="' + coachCfg.maxWeek + '"></div>' +
+      '<div class="toggle-row"><div>Copy the line manager<small>Share completion only, never the mistake</small></div><label class="sw"><input type="checkbox" id="cfMgr" ' + (coachCfg.managerCc ? "checked" : "") + '><span class="tk"></span></label></div>' +
+      '<div style="margin-top:16px;display:flex;gap:10px"><button class="btn-mini" id="cfSave">Save delivery policy</button><button class="btn-mini ghost sm" id="cfTest">Send myself a preview</button></div>' +
+      '<h5 style="font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin:22px 0 12px">What the learner receives</h5>' +
+      '<div id="coachPrev">' + deliveryPreview(lessonById(coachPreviewId)) + '</div>' +
+      '</div></div>' +
+      '<div class="card-p span2" style="margin-top:14px"><h3>Active coaching</h3><p class="sub">Live status across learners. No blame is ever recorded against an individual.</p>' +
+      '<table class="tbl"><thead><tr><th>Learner</th><th>What happened</th><th>Lesson</th><th>Channel</th><th>Status</th><th>Updated</th></tr></thead><tbody id="enrollBody">' + enrollRows() + '</tbody></table></div>';
+  }
+  function enrollRows() {
+    return coachEnroll.map(function (e) {
+      var st = e[4] === "Completed" ? "st-ok" : e[4] === "In progress" ? "st-run" : "st-mut";
+      var l = lessonById(e[2]);
+      return '<tr class="clk" data-lesson="' + e[2] + '"><td>' + esc(e[0]) + '</td><td class="st-mut">' + esc(e[1]) + '</td><td>' + (l ? esc(l.t) : e[2]) + '</td><td>' + e[3] + '</td><td class="' + st + '">' + e[4] + '</td><td class="st-mut">' + e[5] + '</td></tr>';
+    }).join("");
+  }
+  function fillLessons(topic) {
+    var list = (!topic || topic === "All") ? LESSONS : LESSONS.filter(function (l) { return l.topic === topic; });
+    $("#lessonBody").innerHTML = list.map(function (l) {
+      return '<tr class="clk" data-lesson="' + l.id + '"><td>' + esc(l.t) + '</td><td>' + l.topic + '</td><td class="mono">' + l.min + ' min</td><td class="st-mut">' + l.aud + '</td></tr>';
+    }).join("");
+    $$("#lessonBody tr.clk").forEach(function (r) { r.onclick = function () { openLesson(r.getAttribute("data-lesson")); }; });
+  }
+  function openLesson(id) {
+    var l = lessonById(id); if (!l) return;
+    $("#drawerBody").innerHTML =
+      '<button class="x" data-x>&times;</button>' +
+      '<span style="font-family:var(--mono);color:var(--gold);font-size:11px;letter-spacing:.16em">[ ' + l.id + ' &middot; ' + l.topic + ' ]</span>' +
+      '<h3>' + esc(l.t) + '</h3>' +
+      '<div class="meta"><span class="tag sev-med">' + l.min + ' min</span><span class="tag sev-low">' + l.lvel + '</span><span class="tag sev-low">' + l.aud + '</span><span class="tag" style="border:1px solid var(--line);color:var(--gold-soft)">Triggers on ' + l.tied + '</span></div>' +
+      '<h5>What the learner will be able to do</h5><ul class="feature-list">' + l.obj.map(function (o) { return '<li>' + esc(o) + '</li>'; }).join("") + '</ul>' +
+      '<h5>Lesson modules</h5><div class="plan">' + l.mod.map(function (mname, i) { return '<div class="plan-task"><span class="dotp ok"></span><span>' + (i + 1) + '. ' + esc(mname) + '</span><span class="st-mut mono">' + (i === 0 ? "intro" : i === l.mod.length - 1 ? "wrap up" : "micro") + '</span></div>'; }).join("") + '</div>' +
+      '<h5>How it lands on ' + coachCfg.channel + '</h5>' + deliveryPreview(l) +
+      '<div style="display:flex;gap:10px;margin-top:22px"><button class="btn-mini" data-assign="' + l.id + '">Assign to affected learners</button><button class="btn-mini ghost sm" data-prevset="' + l.id + '">Set as preview</button></div>';
+    $("#scrim").classList.add("open"); $("#drawer").classList.add("open");
+    $("[data-x]").onclick = function () { $("#scrim").classList.remove("open"); $("#drawer").classList.remove("open"); };
+    $("[data-assign]").onclick = function () { assignLesson(l.id); };
+    $("[data-prevset]").onclick = function () { coachPreviewId = l.id; var p = $("#coachPrev"); if (p) p.innerHTML = deliveryPreview(l); toast("Preview updated", esc(l.t) + " shown as it lands on " + coachCfg.channel + "."); };
+  }
+  function assignLesson(id) {
+    var l = lessonById(id);
+    coachEnroll.unshift(["Affected learners (" + (6 + Math.floor(Math.random() * 18)) + ")", "From " + coachCfg.campaign, id, coachCfg.channel, "Sent", "just now"]);
+    var b = $("#enrollBody"); if (b) b.innerHTML = enrollRows();
+    bindEnroll();
+    toast("Coaching assigned", esc(l.t) + " is on its way via " + coachCfg.channel + ", " + coachCfg.timing.toLowerCase() + ".");
+  }
+  function bindEnroll() { $$("#enrollBody tr.clk").forEach(function (r) { r.onclick = function () { openLesson(r.getAttribute("data-lesson")); }; }); }
+  function bindCoaching() {
+    fillLessons("All");
+    bindEnroll();
+    var chips = $("#coachChips");
+    if (chips) $$(".chip", chips).forEach(function (c) { c.onclick = function () { $$(".chip", chips).forEach(function (x) { x.classList.remove("on"); }); c.classList.add("on"); fillLessons(c.getAttribute("data-ct")); }; });
+    function refreshPrev() { var p = $("#coachPrev"); if (p) p.innerHTML = deliveryPreview(lessonById(coachPreviewId)); }
+    var ch = $("#cfChannel"); if (ch) ch.onchange = function () { coachCfg.channel = ch.value; refreshPrev(); };
+    var tg = $("#cfTrigger"); if (tg) tg.onchange = function () { coachCfg.trigger = tg.value; };
+    var tm = $("#cfTiming"); if (tm) tm.onchange = function () { coachCfg.timing = tm.value; };
+    var cm = $("#cfCampaign"); if (cm) cm.onchange = function () { coachCfg.campaign = cm.value; };
+    var au = $("#cfAudience"); if (au) au.onchange = function () { coachCfg.audience = au.value; };
+    var mx = $("#cfMax"); if (mx) mx.oninput = function () { coachCfg.maxWeek = +mx.value; $("#cfMaxL").textContent = mx.value + " lessons / learner / week"; };
+    var mg = $("#cfMgr"); if (mg) mg.onchange = function () { coachCfg.managerCc = mg.checked; };
+    var sv = $("#cfSave"); if (sv) sv.onclick = function () { toast("Delivery policy saved", "Coaching will deliver on " + coachCfg.channel + ", " + coachCfg.timing.toLowerCase() + ", for " + coachCfg.audience.toLowerCase() + " of " + coachCfg.campaign + "."); };
+    var ts = $("#cfTest"); if (ts) ts.onclick = function () { toast("Preview sent", "A sample lesson was sent to you on " + coachCfg.channel + "."); };
+    var aa = $("#coachAssignAll"); if (aa) aa.onclick = function () { assignLesson(coachPreviewId); };
+  }
+
   /* ============================ ROUTER ============================ */
   var views = {
     overview: vOverview, campaigns: vCampaigns, campaign: vCampaign, surface: vSurface, paths: vPaths, agents: vAgents,
-    findings: vFindings, social: vSocial, compliance: vCompliance, report: vReport, connectors: vConnectors, settings: vSettings
+    findings: vFindings, social: vSocial, coaching: vCoaching, compliance: vCompliance, report: vReport, connectors: vConnectors, settings: vSettings
   };
   var tickerIv;
   function route() {
@@ -464,6 +628,7 @@
     if (key === "overview") { animateGauges(); startTicker(); }
     if (key === "report") animateGauges();
     if (key === "findings") fillFindings("All");
+    if (key === "coaching") bindCoaching();
     bindClicks();
     $("#viewWrap").scrollIntoView ? null : null;
   }
@@ -1002,7 +1167,74 @@
       if (e.key === "Enter" && gs.value.trim()) { toast("Search", 'No exact match for "' + esc(gs.value.trim()) + '". Try Findings or Attack surface.'); }
     });
     setupAssistant();
+    var tb = $("#tourBtn");
+    if (tb) tb.onclick = function () { $("#userPop").classList.remove("open"); startTour(); };
+    try {
+      if (sessionStorage.getItem("cherubim_tour") !== "done" && window.innerWidth > 980) {
+        setTimeout(startTour, 700);
+      }
+    } catch (e) {}
   });
+
+  /* ============================ GUIDED TOUR ============================ */
+  var TOUR = [
+    [".side", "Your command surface", "Operate, evidence and platform, all from one place. This is where every engagement lives."],
+    ["#launchBtn", "Launch a campaign", "Scope it, set parameters, sign the authorization, and run it across your whole stack or your people."],
+    ['[data-r="agents"]', "Watch the agent mesh", "A fleet of specialised agents coordinates, calls real tools, and plans over hundreds of steps."],
+    ['[data-r="findings"]', "Proven findings", "Every finding is reproduced by a deterministic validator. No proof, no finding."],
+    ['[data-r="social"]', "Omnichannel social engineering", "Email, SMS, WhatsApp, voice clone and live deepfake, all under one adaptive narrative."],
+    ['[data-r="coaching"]', "Blame-free coaching", "Turn a slip into a two minute lesson, delivered on Teams, Slack or Outlook."],
+    ['[data-r="compliance"]', "One click to audit evidence", "Findings map live to NIST, the Singapore Cybersecurity Act, CSA Cyber Trust and more."],
+    ['[data-r="report"]', "Board-ready reporting", "One truth, told the way the board, the auditor and engineering each need to hear it."],
+    ["#askFab", "Ask Cherubim", "Tell the assistant what to do, run a campaign, open a view, coach a team, and it does it."]
+  ];
+  var tourSpot, tourTip, tourIdx = 0;
+  function startTour() {
+    tourIdx = 0;
+    if (!tourSpot) {
+      tourSpot = document.createElement("div"); tourSpot.className = "tour-spot";
+      tourTip = document.createElement("div"); tourTip.className = "tour-tip";
+      document.body.appendChild(tourSpot); document.body.appendChild(tourTip);
+    }
+    tourSpot.style.display = tourTip.style.display = "block";
+    showTourStep();
+    window.addEventListener("resize", showTourStep);
+  }
+  function endTour() {
+    if (tourSpot) tourSpot.style.display = "none";
+    if (tourTip) tourTip.style.display = "none";
+    window.removeEventListener("resize", showTourStep);
+    try { sessionStorage.setItem("cherubim_tour", "done"); } catch (e) {}
+  }
+  function showTourStep() {
+    if (!tourSpot) return;
+    var step = TOUR[tourIdx];
+    var el = $(step[0]);
+    if (!el) { if (tourIdx < TOUR.length - 1) { tourIdx++; showTourStep(); return; } endTour(); return; }
+    var r = el.getBoundingClientRect(), pad = 6;
+    tourSpot.style.left = (r.left - pad) + "px";
+    tourSpot.style.top = (r.top - pad) + "px";
+    tourSpot.style.width = (r.width + pad * 2) + "px";
+    tourSpot.style.height = (r.height + pad * 2) + "px";
+    var dots = TOUR.map(function (_, i) { return '<i class="' + (i === tourIdx ? "on" : "") + '"></i>'; }).join("");
+    tourTip.innerHTML = '<div class="tt-step">Step ' + (tourIdx + 1) + ' of ' + TOUR.length + '</div>' +
+      '<h4>' + step[1] + '</h4><p>' + step[2] + '</p>' +
+      '<div class="tt-row"><div class="tour-dots">' + dots + '</div>' +
+      '<button class="tt-skip" id="ttSkip">Skip</button>' +
+      (tourIdx > 0 ? '<button class="btn-mini ghost sm" id="ttBack">Back</button>' : '') +
+      '<button class="btn-mini sm" id="ttNext">' + (tourIdx === TOUR.length - 1 ? "Done" : "Next") + '</button></div>';
+    // position tooltip
+    var tw = 300, th = tourTip.offsetHeight || 170, gap = 16, left, top;
+    if (r.right + gap + tw < window.innerWidth) { left = r.right + gap; top = r.top; }
+    else if (r.left - gap - tw > 0) { left = r.left - gap - tw; top = r.top; }
+    else { left = Math.min(r.left, window.innerWidth - tw - 16); top = r.bottom + gap; }
+    top = Math.max(16, Math.min(top, window.innerHeight - th - 16));
+    left = Math.max(16, left);
+    tourTip.style.left = left + "px"; tourTip.style.top = top + "px";
+    $("#ttSkip").onclick = endTour;
+    $("#ttNext").onclick = function () { if (tourIdx === TOUR.length - 1) endTour(); else { tourIdx++; showTourStep(); } };
+    if ($("#ttBack")) $("#ttBack").onclick = function () { tourIdx--; showTourStep(); };
+  }
 
   /* ============================ ASSISTANT ============================ */
   function quickStart(typeKey) {
@@ -1054,6 +1286,15 @@
       return "Generating the one click audit pack from compliance. Every validated finding is mapped to NIST, the Singapore Cybersecurity Act, CSA Cyber Trust and more.";
     }
 
+    // Coaching actions
+    if (/(coach|train|teach|send.*(lesson|tutorial|training))/.test(m) && /(affected|learner|user|people|them|staff|fail|assign|send|deliver)/.test(m)) {
+      go("#/coaching");
+      var topic = /phish/.test(m) ? "L03" : /mfa|push/.test(m) ? "L04" : /vish|voice/.test(m) ? "L05" : /deepfake/.test(m) ? "L06" : /password|credential/.test(m) ? "L09" : /helpdesk/.test(m) ? "L07" : /data|pdpa/.test(m) ? "L08" : "L03";
+      setTimeout(function () { assignLesson(topic); }, 600);
+      var ll = lessonById(topic);
+      return "Opening coaching and assigning <b>" + esc(ll.t) + "</b> to the affected learners via " + coachCfg.channel + ", " + coachCfg.timing.toLowerCase() + ". It is blame free, just a short refresher.";
+    }
+
     // Navigation
     var nav = [
       [/(command center|overview|dashboard|home)/, "#/overview", "the command center"],
@@ -1061,6 +1302,7 @@
       [/(attack surface|asset|inventory|connected stack)/, "#/surface", "the attack surface"],
       [/(attack path|kill chain)/, "#/paths", "the proven attack path"],
       [/(agent mesh|orchestration|multi.?agent|planning|plan tree|tool integration|agent fleet)/, "#/agents", "the agent mesh"],
+      [/(coaching|training|lesson|tutorial|educat|awareness|lms)/, "#/coaching", "blame-free coaching"],
       [/(finding|vulnerab|cve|exposure)/, "#/findings", "findings"],
       [/(social|phishing result|human risk)/, "#/social", "social engineering results"],
       [/(compliance|framework|nist|iso|pdpa|cyber trust)/, "#/compliance", "compliance"],
@@ -1084,9 +1326,9 @@
     if (/sign out|log ?out|logout/.test(m)) { setTimeout(function () { $("#logout").onclick(); }, 600); return "Signing you out and returning to the sign in page."; }
 
     if (/^(hi|hey|hello|yo|help|what can you|who are you|\?)/.test(m) || m.length < 3) {
-      return "I am the Cherubim assistant. I can drive the console for you. Try: <b>run an identity campaign now</b>, <b>open findings</b>, <b>review the executive report</b>, <b>export the board pack</b>, <b>show the attack surface</b>, or <b>generate the audit pack</b>.";
+      return "I am the Cherubim assistant. I can drive the console for you. Try: <b>run an identity campaign now</b>, <b>show the agent mesh</b>, <b>open findings</b>, <b>coach the affected people</b>, <b>review the executive report</b>, <b>export the board pack</b>, or <b>generate the audit pack</b>.";
     }
-    return "I can launch and configure campaigns, open any view, surface findings, and generate reports or the audit pack. Try \"run a cloud campaign now\" or \"review the board pack\". What would you like me to do?";
+    return "I can launch and configure campaigns, show the agent mesh, surface findings, assign blame-free coaching, open any view, and generate reports or the audit pack. Try \"run a cloud campaign now\", \"show the agent mesh\" or \"coach the people who clicked\". What would you like me to do?";
   }
 
   function setupAssistant() {
@@ -1103,7 +1345,7 @@
     function seed() {
       if (seeded) return; seeded = true;
       add("bot", "Hello " + (USER.name.split(" ")[0]) + ". I am the Cherubim assistant. Tell me what to do and I will run it.");
-      var s = ["Run an assumed breach campaign now", "Open findings", "Review the executive report", "Generate the audit pack"];
+      var s = ["Run an assumed breach campaign now", "Show the agent mesh", "Coach the affected people", "Review the executive report"];
       sugs.innerHTML = "";
       s.forEach(function (t) {
         var b = document.createElement("button"); b.textContent = t;
