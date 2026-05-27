@@ -1479,7 +1479,9 @@
     ['[data-r="coaching"]', "Blame-free coaching", "Turn a slip into a two minute lesson, delivered on Teams, Slack or Outlook."],
     ['[data-r="compliance"]', "One click to audit evidence", "Findings map live to NIST, the Singapore Cybersecurity Act, CSA Cyber Trust and more."],
     ['[data-r="report"]', "Board-ready reporting", "One truth, told the way the board, the auditor and engineering each need to hear it."],
-    ["#askFab", "Ask Cherubim", "Tell the assistant what to do, run a campaign, open a view, coach a team, and it does it."]
+    ['[data-r="connectors"]', "API, CLI and connectors", "Everything in the console is also a typed API and CLI, so it drops into your pipeline alongside 14 stack connectors."],
+    ['[data-r="settings"]', "Signed audit ledger", "Every operator action and every agent tool call lands in an append only, signed ledger. Auditor ready."],
+    ["#askFab", "Ask Cherubim", "Tell the assistant what to do, run a campaign, open a view, coach a team, export the board pack, and it does it."]
   ];
   var tourSpot, tourTip, tourIdx = 0;
   function startTour() {
@@ -1599,8 +1601,8 @@
       [/(finding|vulnerab|cve|exposure)/, "#/findings", "findings"],
       [/(social|phishing result|human risk)/, "#/social", "social engineering results"],
       [/(compliance|framework|nist|iso|pdpa|cyber trust)/, "#/compliance", "compliance"],
-      [/(integration|connector)/, "#/connectors", "integrations"],
-      [/(engagement rule|guardrail|setting|governance)/, "#/settings", "engagement rules"],
+      [/(integration|connector|\bapi\b|\bcli\b|webhook)/, "#/connectors", "integrations, API and CLI"],
+      [/(engagement rule|guardrail|setting|governance|audit ledger|audit log|\bledger\b)/, "#/settings", "engagement rules and the audit ledger"],
       [/(report|board)/, "#/report", "the executive report"]
     ];
     for (var i = 0; i < nav.length; i++) {
@@ -1619,7 +1621,7 @@
     if (/sign out|log ?out|logout/.test(m)) { setTimeout(function () { $("#logout").onclick(); }, 600); return "Signing you out and returning to the sign in page."; }
 
     if (/^(hi|hey|hello|yo|help|what can you|who are you|\?)/.test(m) || m.length < 3) {
-      return "I am the Cherubim assistant. I can drive the console for you. Try: <b>run an identity campaign now</b>, <b>show the agent mesh</b>, <b>open findings</b>, <b>coach the affected people</b>, <b>review the executive report</b>, <b>export the board pack</b>, or <b>generate the audit pack</b>.";
+      return "I am the Cherubim assistant. I can drive the console for you. Try: <b>run an identity campaign now</b>, <b>show the agent mesh</b>, <b>open findings</b>, <b>coach the affected people</b>, <b>review the executive report</b>, <b>show the audit ledger</b>, <b>show the API</b>, or <b>generate the audit pack</b>.";
     }
     return "I can launch and configure campaigns, show the agent mesh, surface findings, assign blame-free coaching, open any view, and generate reports or the audit pack. Try \"run a cloud campaign now\", \"show the agent mesh\" or \"coach the people who clicked\". What would you like me to do?";
   }
