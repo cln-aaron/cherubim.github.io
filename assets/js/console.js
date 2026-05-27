@@ -413,8 +413,10 @@
       '<div class="head-actions"><button class="btn-mini ghost sm" data-toast="Connector catalogue|41 more integrations available">+ Add connector</button></div></div>' +
       '<div class="stat-row">' + statCard("Connectors", "14", "", "all healthy") + statCard("Surfaces covered", "7", "", "full stack") +
         statCard("Assets ingested", "1,284", "up", "continuous") + statCard("Last sync", "live", "", "streaming") + '</div>' +
+      '<div class="card-p span2" style="margin-bottom:18px"><h3>API and CLI</h3><p class="sub">Everything you do in the console runs through a typed API. Drive it from your pipeline.</p>' +
+      '<div class="code" style="white-space:pre"><span class="c"># launch an authorised engagement</span>\n$ cherubim campaign launch \\\n    --type assumed-breach \\\n    --scope cidr:10.4.0.0/16,domain:nw-corp.local,cloud:aws/nw-prod \\\n    --intensity 3 --concurrency 80 --window off-hours \\\n    --auth AUTH-2026-0519-NW --owner aaron.ang@hesedemet.asia\n<span class=\'ok\'>{ "id": "CMP-2046", "status": "queued", "url": "https://cherubim.hesedemet.asia/console/#/campaign/CMP-2046" }</span>\n\n<span class="c"># list validated criticals</span>\n$ cherubim findings list --severity Critical --campaign CMP-2046 --json | jq \'.[].id\'\n<span class=\'ot\'>"F-3301"\n"F-3302"\n"F-3303"</span>\n\n<span class="c"># export the audit pack, signed and chain-of-custody intact</span>\n$ cherubim audit export --campaign CMP-2046 --frameworks NIST,CyberTrust,ISO27001 --out ./audit.zip\n<span class=\'ok\'>[+] sealed audit.zip (sha256 8f3a...c2b1, 9 frameworks, 12 findings)</span>\n\n<span class="c"># webhook: stream events into your SOC</span>\n$ cherubim webhooks add https://soc.northwind.io/in/cherubim --events finding.proven,campaign.* --secret <span class=\'g\'>$NW_SECRET</span></div></div>' +
       Object.keys(cats).map(function (cat) {
-        return '<h3 style="font-family:Fraunces;color:var(--paper);font-size:17px;margin:24px 0 12px">' + cat + '</h3><div class="conn-grid">' +
+        return '<h3 style="font-family:var(--sans);color:var(--paper);font-size:17px;margin:24px 0 12px;font-weight:500">' + cat + '</h3><div class="conn-grid">' +
           cats[cat].map(function (c) {
             return '<div class="conn"><div class="ct"><span class="cn">' + c[0] + '</span><span class="cs">&#9679; ' + c[2] + '</span></div>' +
               '<div class="cmeta">Scope <b>' + c[3] + '</b><br>Last sync <b>' + c[4] + '</b></div></div>';
@@ -439,7 +441,27 @@
       '<div class="frm"><label>Max concurrent agents</label><input type="text" value="120" readonly></div>' +
       '<div class="frm"><label>Data residency</label><input type="text" value="Singapore (ap-southeast-1)" readonly></div>' +
       '<div class="frm"><label>Evidence retention</label><input type="text" value="400 days, immutable, chain of custody" readonly></div>' +
-      '<div class="frm"><label>Accountable owner</label><input type="text" value="Aaron Ang" readonly></div></div></div>';
+      '<div class="frm"><label>Accountable owner</label><input type="text" value="Aaron Ang" readonly></div></div></div>' +
+      '<div class="card-p span2" style="margin-top:14px"><h3>Audit ledger</h3><p class="sub">Append only, signed per line, exportable to your SIEM</p>' +
+      '<div class="code" style="white-space:pre">' + auditLogLines() + '</div></div>';
+  }
+  function auditLogLines() {
+    var rows = [
+      ["09:11:38", "auth.signin", "aaron.ang@hesedemet.asia", "ok"],
+      ["09:12:02", "campaign.launch", "CMP-2041 assumed breach, scope=cidr:10.4.0.0/16,cloud:aws/nw-prod", "ok"],
+      ["09:12:09", "tool.call", "nmap -sV -p- 10.4.0.0/16 --open --min-rate 1500", "ok"],
+      ["09:18:22", "tool.call", "kerbrute userenum -d nw-corp.local", "ok"],
+      ["09:23:51", "validator.run", "F-3303 reproduced 3/3 in payments-sandbox-c4f1", "ok"],
+      ["09:31:14", "channel.send", "118 emails dispatched on CMP-2044", "ok"],
+      ["09:32:08", "distress.detected", "target=priya.n@northwind.io thread halted", "info"],
+      ["09:41:00", "evidence.seal", "audit.zip sha256=8f3a...c2b1 hsm=cb-hsm-1", "ok"],
+      ["09:41:02", "framework.map", "9 frameworks tagged for CMP-2041", "ok"]
+    ];
+    var hash = "1a4b9c7f";
+    return rows.map(function (r) {
+      hash = (parseInt(hash, 16) * 31 + r[1].length * 7).toString(16).padStart(8, "0").slice(-8);
+      return "<span class='c'>[" + r[0] + " SGT]</span> <span class='gd'>" + r[1] + "</span> " + esc(r[2]) + " <span class='c'>sig=" + hash + "</span> <span class='ok'>" + r[3] + "</span>";
+    }).join("\n");
   }
 
   /* ============================ COACHING ============================ */
@@ -668,6 +690,68 @@
   }
 
   /* ============================ DRAWER ============================ */
+  function fakeHash(seed) {
+    var h = 0, s = String(seed) + "::cherubim::validator";
+    for (var i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+    var out = "", x = Math.abs(h);
+    for (var j = 0; j < 64; j++) { out += "0123456789abcdef"[(x >>> (j % 24)) & 15]; x = (x * 31 + 7) | 0; }
+    return out;
+  }
+  function validatorFor(f) {
+    var base = "// validator/" + f.id.toLowerCase() + ".ts  (sandboxed, deterministic)\n" +
+      "<span class='c'>import { sandbox, expect, seal } from \"@cherubim/validator\";</span>\n" +
+      "<span class='c'>export const schema = {</span>\n" +
+      "  id: \"" + f.id + "\",\n" +
+      "  attck: \"" + f.att + "\",\n" +
+      "  surface: \"" + f.surf + "\",\n" +
+      "  inputs: { capture: \"agent.web|agent.identity|agent.cloud\", scope: \"engagement.scope\" },\n" +
+      "  outputs: { reproduced: \"boolean\", evidence: \"artifact\" }\n" +
+      "<span class='c'>} as const;</span>\n\n";
+    var body;
+    if (/T1190/.test(f.att) && /settle|payments|logic/i.test(f.t)) {
+      body = "<span class='c'>export async function run(ctx) {</span>\n" +
+        "  const tenant = await sandbox.clone(ctx.target, { isolated: true });\n" +
+        "  const req = ctx.capture.request; // POST /api/v2/settle\n" +
+        "  req.body = { amount: <span class='g'>-50000</span>, acct: \"sandbox-c4f1\" };\n" +
+        "  const res = await tenant.send(req);\n" +
+        "  expect(res.status).toBe(200);\n" +
+        "  expect(res.json.delta).toBe(<span class='g'>-50000</span>); <span class='c'>// ledger inverted</span>\n" +
+        "  return seal({ reproduced: true, evidence: res.captureChain() });\n" +
+        "<span class='c'>}</span>";
+    } else if (/T1078|T1556/.test(f.att)) {
+      body = "<span class='c'>export async function run(ctx) {</span>\n" +
+        "  const ad = await sandbox.cloneDirectory(ctx.target.domain);\n" +
+        "  const tgt = await ad.kerberos.s4u2self({ user: \"svc_ci\", impersonate: \"Administrator\" });\n" +
+        "  const tgs = await ad.kerberos.s4u2proxy({ tgt, spn: \"HTTP/dc1.\" + ad.fqdn });\n" +
+        "  expect(tgs.principal).toEqual(\"Administrator@\" + ad.fqdn.toUpperCase());\n" +
+        "  return seal({ reproduced: true, evidence: ad.captureChain() });\n" +
+        "<span class='c'>}</span>";
+    } else if (/T1530/.test(f.att)) {
+      body = "<span class='c'>export async function run(ctx) {</span>\n" +
+        "  const objs = await ctx.aws.s3.list(ctx.target.bucket, { signing: false, sample: 5 });\n" +
+        "  expect(objs.length).toBeGreaterThan(0);\n" +
+        "  const head = await ctx.aws.s3.head(objs[0].key, { signing: false });\n" +
+        "  expect(head.status).toBe(200);\n" +
+        "  return seal({ reproduced: true, evidence: { sample: objs.length, removed: 0 } });\n" +
+        "<span class='c'>}</span>";
+    } else if (/T1552/.test(f.att)) {
+      body = "<span class='c'>export async function run(ctx) {</span>\n" +
+        "  const pod = ctx.k8s.exec(\"payments-7f4-2x9k\", \"payments\");\n" +
+        "  const role = await pod.curl(\"http://169.254.169.254/latest/meta-data/iam/security-credentials/\");\n" +
+        "  expect(role.body).toMatch(/nw-eks-node-role/);\n" +
+        "  return seal({ reproduced: true, evidence: { imds: \"v1\", role: role.body } });\n" +
+        "<span class='c'>}</span>";
+    } else {
+      body = "<span class='c'>export async function run(ctx) {</span>\n" +
+        "  const sb = await sandbox.spawn(ctx.target);\n" +
+        "  const replay = await sb.replay(ctx.capture);\n" +
+        "  expect(replay.matches(ctx.signature)).toBe(true);\n" +
+        "  return seal({ reproduced: true, evidence: replay.artifacts() });\n" +
+        "<span class='c'>}</span>";
+    }
+    return base + body;
+  }
+
   function openFinding(id) {
     var f = state.findings.filter(function (x) { return x.id === id; })[0]; if (!f) return;
     $("#drawerBody").innerHTML =
@@ -679,6 +763,8 @@
       '<span class="tag" style="border:1px solid rgba(63,185,132,.4);color:#3FB984">PROVEN</span></div>' +
       '<h5>Summary</h5><p>' + esc(f.d) + '</p>' +
       '<h5>Validated proof of concept</h5><div class="code">' + f.poc + '</div>' +
+      '<h5>Deterministic validator</h5><div class="code">' + validatorFor(f) + '</div>' +
+      '<div class="val-runs"><span class="dotp ok"></span> Last 3 runs in isolated sandbox: <b>3 / 3 reproduced</b> &middot; <span class="mono">SHA-256 ' + esc(fakeHash(f.id)) + '</span></div>' +
       '<h5>Remediation</h5><p>' + esc(f.fix) + '</p>' +
       '<h5>Mapped controls</h5><div class="fwtags">' + (f.fw || []).map(function (x) { return '<span>' + x + '</span>'; }).join("") + '</div>' +
       '<h5>Evidence</h5><p>Sandbox recording, request and response capture, and chain of custody timestamps are sealed in the evidence pack and exportable for audit.</p>';
