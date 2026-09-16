@@ -242,3 +242,18 @@
 .live-feed .lf.phase{color:var(--text)}
 .live-feed .lf.find{color:#3ee08a}
 .live-feed .lf.start,.live-feed .lf.done{color:var(--accent-2)}
+
+/* loading overlay */
+.load-overlay{position:fixed;inset:0;z-index:140;display:none;align-items:center;justify-content:center;
+  background:rgba(6,7,9,.72);backdrop-filter:blur(4px)}
+.load-overlay.open{display:flex}
+.load-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:34px 40px;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 30px 80px -30px rgba(0,0,0,.8)}
+.load-box b{font-size:16px;color:var(--paper);font-weight:600;margin-top:6px}
+.load-box span{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.spinner{width:38px;height:38px;border-radius:50%;border:3px solid rgba(255,255,255,.1);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* empty current-scan state */
+.cur-empty{background:var(--panel);border:1px dashed var(--line);border-radius:var(--r);padding:52px 30px;text-align:center;color:var(--muted)}
+.cur-empty b{display:block;color:var(--paper);font-size:16px;font-weight:600;margin-bottom:6px}
+.cur-empty span{font-size:13px}

@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="../assets/css/styles.css" />
-<link rel="stylesheet" href="../assets/css/app.css" />
+<link rel="stylesheet" href="../assets/css/styles.css?v=2" />
+<link rel="stylesheet" href="../assets/css/app.css?v=2" />
 </head>
 <body>
 <div class="app">
@@ -29,9 +29,13 @@
     </a>
 
     <div class="rail-sec">Operate</div>
-    <button class="rail-item on" data-nav="scan">
-      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+    <button class="rail-item on" data-nav="new">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
       New scan
+    </button>
+    <button class="rail-item" data-nav="current">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg>
+      Current scan <span class="ct" id="navCurCt"></span>
     </button>
     <button class="rail-item" data-nav="scans">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -66,6 +70,14 @@
 <aside class="drawer" id="drawer"><div id="drawerBody"></div></aside>
 <div class="toasts" id="toasts"></div>
 
-<script src="../assets/js/portal.js"></script>
+<div class="load-overlay" id="loadOverlay">
+  <div class="load-box">
+    <div class="spinner"></div>
+    <b>Starting engagement…</b>
+    <span>Provisioning the run and kicking off phase 1</span>
+  </div>
+</div>
+
+<script src="../assets/js/portal.js?v=2"></script>
 </body>
 </html>

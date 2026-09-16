@@ -60,7 +60,7 @@
   function createSchedule(s) { return api("/schedules", { method: "POST", body: s }); }
   function deleteSchedule(id) { return api("/schedules?id=" + encodeURIComponent(id), { method: "DELETE" }); }
 
-  var state = { view: "scan", scan: null, counts: null, findings: [], filter: "all", poll: null, t0: 0, done: false, warned: false, scans: [], schedules: [], activity: [], lastPhase: 0, seenFinds: {} };
+  var state = { view: "new", scan: null, counts: null, findings: [], filter: "all", poll: null, clockIv: null, t0: 0, endT: 0, done: false, warned: false, scans: [], schedules: [], activity: [], lastPhase: 0, seenFinds: {} };
 
   function pushAct(kind, text) {
     state.activity.push({ t: new Date().toLocaleTimeString([], { hour12: false }), kind: kind, text: text });
@@ -71,6 +71,17 @@
     return state.activity.map(function (a) { return '<div class="lf ' + a.kind + '"><span class="t">' + a.t + '</span>' + esc(a.text) + '</div>'; }).join("");
   }
   function scrollFeed() { var f = $("#liveFeed"); if (f) f.scrollTop = f.scrollHeight; }
+  function showLoad(on) { var o = $("#loadOverlay"); if (o) o.classList.toggle("open", !!on); }
+  function curElapsed() { return elapsed(((state.done && state.endT) ? state.endT : Date.now()) - state.t0); }
+  function startClock() {
+    stopClock();
+    state.clockIv = setInterval(function () {
+      if (!state.scan || state.done) { stopClock(); return; }
+      var e = curElapsed(), a = $("#cbElapsed"), b = $("#cbElapsed2");
+      if (a) a.textContent = e; if (b) b.textContent = e;
+    }, 1000);
+  }
+  function stopClock() { if (state.clockIv) { clearInterval(state.clockIv); state.clockIv = null; } }
 
   function toast(title, msg, kind) {
     var t = document.createElement("div");
@@ -151,7 +162,7 @@
       '<div class="scan-top"><div>' +
       '<div class="eyebrow-min">' + (running ? '<span class="live-dot"></span> Live engagement' : 'Engagement complete') + '</div>' +
       '<div class="tgt">' + esc(sc.target) + '</div>' +
-      '<div class="meta">' + esc(sc.mode || "single") + ' · ' + esc((sc.id || "").slice(0, 8)) + ' · ' + elapsed(Date.now() - state.t0) + '</div></div>' +
+      '<div class="meta">' + esc(sc.mode || "single") + ' · ' + esc((sc.id || "").slice(0, 8)) + ' · <span id="cbElapsed">' + curElapsed() + '</span></div></div>' +
       '<span class="stbadge ' + (state.done ? "ok" : "run") + '">' + esc(state.done ? "completed" : (sc.status || "running")) + '</span></div>' +
       '<div class="scan-body"><div class="scan-main">' +
       '<div class="phase-head"><span class="nm">Phase <b>' + ph + '</b> / 22 — ' + esc(PHASES[ph - 1] || "") + '</span><span class="pct">' + pct + '%</span></div>' +
@@ -161,7 +172,7 @@
       '<div class="scan-side">' +
       '<div class="sevsum">' + donut(cn) + '<div class="sevlegend">' + legend + '</div></div>' +
       '<div class="metricline"><span>Reproduced</span><b>' + total + '</b></div>' +
-      '<div class="metricline"><span>Elapsed</span><b>' + elapsed(Date.now() - state.t0) + '</b></div>' +
+      '<div class="metricline"><span>Elapsed</span><b id="cbElapsed2">' + curElapsed() + '</b></div>' +
       '<div class="metricline"><span>Mode</span><b>' + esc(sc.mode || "single") + '</b></div>' +
       '</div></div></div>';
   }
@@ -270,22 +281,26 @@
   }
 
   /* ---------- render ---------- */
+  function currentView() {
+    if (!state.scan) return '<div class="cur-empty"><b>No scan open</b><span>Start one from New scan, or open a past run from Scans.</span></div>';
+    return scanPanel() + findingsSection();
+  }
   function render() {
     var c = $("#content");
     if (state.view === "scans") c.innerHTML = scansView();
     else if (state.view === "scheduled") c.innerHTML = scheduledView();
-    else c.innerHTML = (state.scan ? scanPanel() + findingsSection() + launcher() : launcher() + findingsSection());
+    else if (state.view === "current") c.innerHTML = currentView();
+    else c.innerHTML = launcher();
     bind();
     scrollFeed();
-    $("#crumb").textContent = state.view === "scans" ? "/ scans" : state.view === "scheduled" ? "/ scheduled" : "";
+    $("#crumb").textContent = state.view === "scans" ? "/ scans" : state.view === "scheduled" ? "/ scheduled" : state.view === "current" ? "/ current scan" : "";
   }
   function refreshDynamic() {
-    if (state.view !== "scan") return;
-    var p = $("#scanPanel"); if (p) p.outerHTML = scanPanel(); else if (state.scan) { render(); return; }
+    if (state.view !== "current") return;
+    var p = $("#scanPanel"); if (p) p.outerHTML = scanPanel(); else { render(); return; }
     var f = $("#findings"); if (f) f.outerHTML = findingsSection();
     bind();
     scrollFeed();
-    var b = $("#scanGo"); if (b) { b.disabled = false; b.textContent = "Launch engagement"; }
   }
 
   function bind() {
@@ -335,18 +350,21 @@
     var mode = $("#scanMode").value, sev = $("#scanSev").value;
     if (!target) { toast("Enter a target", "Add a URL, host or wildcard to test.", "err"); return; }
     var btn = $("#scanGo"); if (btn) { btn.disabled = true; btn.textContent = "Launching…"; }
+    showLoad(true);
     try { localStorage.setItem("cb_last_target", $("#scanTarget").value.trim()); } catch (e) {}
     createScan(target, mode, sev).then(function (r) {
       state.scan = { id: r.id, target: r.target || target, mode: mode, status: r.status || "running", current_phase: 1 };
       state.counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
-      state.findings = []; state.done = false; state.warned = false; state.t0 = Date.now(); state.filter = "all";
+      state.findings = []; state.done = false; state.warned = false; state.t0 = Date.now(); state.endT = 0; state.filter = "all";
       state.activity = []; state.lastPhase = 0; state.seenFinds = {};
       pushAct("start", "engagement started · " + target);
-      toast("Engagement started", "Working " + target + " across 22 phases.");
-      render();
-      var p = $("#scanPanel"); if (p) p.scrollIntoView({ behavior: "smooth", block: "start" });
+      showLoad(false);
+      toast("Engagement started", "Working " + target + " across 22 phases.", "ok");
+      setView("current");
       startPoll();
+      startClock();
     }).catch(function (err) {
+      showLoad(false);
       if (btn) { btn.disabled = false; btn.textContent = "Launch engagement"; }
       toast("Could not start", String(err.message || err), "err");
     });
@@ -381,12 +399,14 @@
           if (n) toast("Finding proven", SEV_LABEL[(n.severity || "info").toLowerCase()] + " · " + cleanTitle(n.title), "ok");
         }
         if (finished) {
-          state.done = true; stopPoll();
+          state.done = true; state.endT = r.scan.completed_at ? new Date(r.scan.completed_at).getTime() : Date.now();
+          stopPoll(); stopClock();
           var c = state.counts || {};
           var tot = SEV.reduce(function (a, k) { return a + (c[k] || 0); }, 0);
           pushAct("done", "engagement complete · " + tot + " findings reproduced");
           toast("Engagement complete", (c.critical || 0) + " critical, " + (c.high || 0) + " high, " + (c.medium || 0) + " medium — all reproduced.", "ok");
         }
+        updateCurCt();
         refreshDynamic();
       });
     }).catch(function (err) {
@@ -396,14 +416,16 @@
 
   /* ---------- open a recorded scan ---------- */
   function openScan(id) {
-    setView("scan");
+    showLoad(true);
     Promise.all([scanStatus(id), listFindings(id, 100)]).then(function (res) {
       var st = res[0], fr = res[1];
-      if (!st.scan) return;
+      showLoad(false);
+      if (!st.scan) { toast("Scan not found", "", "err"); return; }
       state.scan = { id: st.scan.id, target: st.scan.target, mode: st.scan.mode, status: st.scan.status, current_phase: st.scan.current_phase };
       state.counts = st.counts || {}; state.findings = fr.findings || []; state.filter = "all";
       state.done = st.scan.status === "completed" || !!st.scan.completed_at;
       state.t0 = st.scan.started_at ? new Date(st.scan.started_at).getTime() : Date.now();
+      state.endT = st.scan.completed_at ? new Date(st.scan.completed_at).getTime() : 0;
       state.lastPhase = st.scan.current_phase || 22; state.seenFinds = {};
       state.activity = [];
       pushAct("start", "opened engagement · " + state.scan.target);
@@ -412,10 +434,9 @@
         pushAct("find", "proven · " + SEV_LABEL[(f.severity || "info").toLowerCase()] + " — " + cleanTitle(f.title) + (f.cvss != null ? " · CVSS " + f.cvss : ""));
       });
       if (state.done) { var tot = SEV.reduce(function (a, k) { return a + (state.counts[k] || 0); }, 0); pushAct("done", "engagement complete · " + tot + " findings reproduced"); }
-      render();
-      if (!state.done) startPoll();
-      var p = $("#scanPanel"); if (p) p.scrollIntoView({ block: "start" });
-    }).catch(function (err) { toast("Could not open scan", String(err.message || err), "err"); });
+      setView("current");
+      if (!state.done) { startPoll(); startClock(); }
+    }).catch(function (err) { showLoad(false); toast("Could not open scan", String(err.message || err), "err"); });
   }
 
   /* ---------- schedules ---------- */
@@ -460,10 +481,9 @@
       if (state.view === "scheduled") render();
     }).catch(function () {});
   }
-  function loadRecent() {
-    listFindings(null, 100).then(function (fr) {
-      if (!state.scan && state.view === "scan" && fr.findings && fr.findings.length) { state.findings = fr.findings; refreshDynamic(); }
-    }).catch(function () {});
+  function updateCurCt() {
+    var ct = $("#navCurCt");
+    if (ct) ct.textContent = state.scan ? (state.done ? "done" : "live") : "";
   }
 
   /* ---------- view switching ---------- */
@@ -472,9 +492,10 @@
     $$(".rail-item[data-nav]").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-nav") === v); });
     $("#rail").classList.remove("open");
     render();
+    updateCurCt();
     if (v === "scans") loadScans();
     if (v === "scheduled") loadSchedules();
-    if (v === "scan") { var ti = $("#scanTarget"); if (ti) ti.focus(); }
+    if (v === "new") { var ti = $("#scanTarget"); if (ti) ti.focus(); }
   }
 
   /* ---------- identity ---------- */
@@ -501,7 +522,6 @@
       .catch(function () {});
 
     render();
-    loadRecent();
     loadScans();
     loadSchedules();
 
