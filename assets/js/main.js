@@ -105,15 +105,15 @@
   var feed = document.getElementById("showFeed");
   if (feed) {
     var lines = [
-      "agent.recon mapped 1,284 assets",
-      "agent.web proved logic bypass on payments",
-      "validator reproduced F-3303 (3x)",
-      "agent.identity recovered CI credential",
-      "agent.cloud assumed node role via IMDS",
-      "narrative.engine escalated vishing scenario",
-      "agent.privesc reached Domain Admin, stopped",
-      "compliance.map tagged finding to NIST",
-      "coach delivered a 3 min lesson on Teams"
+      "recon mapped 12 origins, 47 subdomains",
+      "phase 07 access control, testing IDOR",
+      "verified IDOR on /api/orders/{id} (CVSS 9.1)",
+      "phase 08 injection, boolean-blind SQLi",
+      "sandbox reproduced SQLi, proof captured",
+      "phase 09 XSS, reflected in attribute context",
+      "verified reflected XSS (CWE-79)",
+      "phase 14 API testing, GraphQL introspection",
+      "report assembled, 6 findings all proven"
     ];
     var fi = 0;
     function feedAdd() {

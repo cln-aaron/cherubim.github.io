@@ -1,41 +1,48 @@
 # Cherubim
 
-> Cherubim is an agentic AI red team that runs automated penetration testing
-> across the entire cybersecurity stack and orchestrated omnichannel social
-> engineering, then proves every finding and maps it to compliance frameworks.
+> Cherubim is autonomous AI penetration testing that finds an application's
+> real vulnerabilities and proves each one with a working exploit, not a guess.
 
 Cherubim is a product of Hesed & Emet Advisory, a Singapore advisory working
-where AI, cybersecurity and human behaviour collide. It is a sibling product
-to Aegis, the same company's AI security operations platform.
+where AI, cybersecurity and human behaviour collide.
 
 ## What Cherubim does
 
-- Autonomous offensive engine: a swarm of reasoning agents that maps,
-  exploits and chains weaknesses, with deterministic validation so no
-  finding ships without reproducible proof.
-- Full stack attack coverage: external and internal network, web, API,
-  mobile, cloud, Kubernetes, identity, Active Directory, wireless, OT and
-  supply chain, run as one continuous kill chain.
-- Orchestrated omnichannel social engineering: phishing email, SMS,
-  WhatsApp, voice cloning, live deepfake video on Zoom, Teams and Meet,
-  and Slack and Teams follow up, under one adaptive narrative.
-- Compliance and reporting: one click mapping to NIST CSF 2.0 and SP
-  800-53, the Singapore Cybersecurity Act, the CSA Cyber Trust and Cyber
-  Essentials marks, ISO/IEC 27001, MAS TRM, PDPA, MITRE ATT&CK and CIS
-  Controls, plus board, CISO, engineering and audit reporting views.
+- Autonomous pentesting: point it at a URL, hostname or wildcard domain and it
+  runs a complete engagement on its own, no agents or appliances to install.
+- Exploit verification: every candidate vulnerability is reproduced in an
+  isolated sandbox and attached to the finding as a working proof of concept.
+  If it cannot be reproduced, it is not reported, so you get evidence, not
+  false positives.
+- 22-phase methodology: reconnaissance, subdomain discovery, fingerprinting,
+  transport security, authentication, session management, access control and
+  IDOR, SQL and NoSQL injection, XSS, SSRF, command injection, file upload and
+  path traversal, XXE and deserialization, API security, business logic, rate
+  limiting, information disclosure, cloud and infrastructure, headers and CORS,
+  client-side analysis, exploit verification, and reporting.
+- Live observability: a real-time stream of tool invocations, agent reasoning,
+  HTTP activity, phase transitions and findings as they are proven.
+- Integrations: a REST API, a GitHub app that reviews pull requests, CI/CD
+  gating that breaks the build only on proven findings above a severity
+  threshold, scheduled scans, and an open-source CLI.
+- Reporting: branded reports with an executive summary, severity breakdown,
+  proof of concept and remediation, plus signed share links for stakeholders.
 
 ## Key facts
 
-- Category: agentic AI red team, automated penetration testing, adversary
-  simulation, social engineering simulation.
-- Differentiator: deterministic validation, no proof means no finding.
-- Safety: signed authorization gate, consent for cloned personas,
-  stand down on distress, watermarked synthetic media, never causes real
-  loss.
+- Category: autonomous AI penetration testing, application and API security,
+  exploit-verified DAST.
+- Differentiator: no proof, no finding. Every issue ships with a working
+  exploit, a CVSS score, a CWE and OWASP mapping, and a fix.
+- Safety: non-destructive payloads with rate-limit protection, safe to run
+  against production. Typical single-target scan completes in 10-30 minutes.
+- Data protection: row-level isolation, TLS in transit, no training on customer
+  data, user control over export and deletion.
 - Region: Singapore and Asia Pacific.
 - Contact: hello@hesedemet.asia
 
 ## Links
 
 - Site: https://cherubim.hesedemet.asia/
+- Console: https://cherubim.hesedemet.asia/console/
 - Parent advisory: https://www.hesedemet.asia
