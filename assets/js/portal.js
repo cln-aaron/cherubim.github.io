@@ -1,8 +1,8 @@
 /* ============================================================================
    Cherubim live pentest portal
-   Talks directly to the Xalgorix public API from the browser.
-   NOTE: this is a static site, so the API key below ships to the client.
-   Rotate it from one place (PORTAL.key). To hide it, put a proxy in front.
+   Calls the Cherubim scan API through a server-side proxy, so no key or
+   upstream detail is exposed to the browser. Endpoints and behaviour are
+   configured in one place (PORTAL, below).
    ============================================================================ */
 (function () {
   "use strict";
@@ -17,12 +17,10 @@
 
   /* -------- config -------- */
   var PORTAL = {
-    base: "https://www.xalgorix.com/api/public/v1",
-    key: "xlg_live_1196967b25f012412ab2e74526672950ba908096341c0751",
+    base: "https://cherubim-api.cyber-leaders-nexus.workers.dev/v1",
+    key: "",
     pollMs: 6000
   };
-  // allow an operator override without editing source (kept per browser)
-  try { var k = localStorage.getItem("cb_key"); if (k) PORTAL.key = k; } catch (e) {}
 
   var PHASES = [
     "Reconnaissance & scope mapping", "Subdomain & asset discovery", "Technology fingerprinting",
@@ -45,7 +43,8 @@
   /* -------- api -------- */
   function api(path, opts) {
     opts = opts || {};
-    var headers = { "Authorization": "Bearer " + PORTAL.key };
+    var headers = {};
+    if (PORTAL.key) headers["Authorization"] = "Bearer " + PORTAL.key;
     if (opts.body) headers["Content-Type"] = "application/json";
     return fetch(PORTAL.base + path, {
       method: opts.method || "GET",
