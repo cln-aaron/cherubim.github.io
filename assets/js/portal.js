@@ -60,7 +60,17 @@
   function createSchedule(s) { return api("/schedules", { method: "POST", body: s }); }
   function deleteSchedule(id) { return api("/schedules?id=" + encodeURIComponent(id), { method: "DELETE" }); }
 
-  var state = { view: "scan", scan: null, counts: null, findings: [], filter: "all", poll: null, t0: 0, done: false, warned: false, scans: [], schedules: [] };
+  var state = { view: "scan", scan: null, counts: null, findings: [], filter: "all", poll: null, t0: 0, done: false, warned: false, scans: [], schedules: [], activity: [], lastPhase: 0, seenFinds: {} };
+
+  function pushAct(kind, text) {
+    state.activity.push({ t: new Date().toLocaleTimeString([], { hour12: false }), kind: kind, text: text });
+    if (state.activity.length > 100) state.activity.shift();
+  }
+  function activityRows() {
+    if (!state.activity.length) return '<div class="lf">initializing engagement…</div>';
+    return state.activity.map(function (a) { return '<div class="lf ' + a.kind + '"><span class="t">' + a.t + '</span>' + esc(a.text) + '</div>'; }).join("");
+  }
+  function scrollFeed() { var f = $("#liveFeed"); if (f) f.scrollTop = f.scrollHeight; }
 
   function toast(title, msg, kind) {
     var t = document.createElement("div");
@@ -147,7 +157,7 @@
       '<div class="phase-head"><span class="nm">Phase <b>' + ph + '</b> / 22 — ' + esc(PHASES[ph - 1] || "") + '</span><span class="pct">' + pct + '%</span></div>' +
       '<div class="pbar"><i style="width:' + pct + '%"></i></div>' +
       '<div class="ptrack">' + ticks + '</div>' +
-      '<div class="phase-log">' + phaseLog(ph) + '</div></div>' +
+      '<div class="lf-head">Live activity</div><div class="live-feed" id="liveFeed">' + activityRows() + '</div></div>' +
       '<div class="scan-side">' +
       '<div class="sevsum">' + donut(cn) + '<div class="sevlegend">' + legend + '</div></div>' +
       '<div class="metricline"><span>Reproduced</span><b>' + total + '</b></div>' +
@@ -264,15 +274,17 @@
     var c = $("#content");
     if (state.view === "scans") c.innerHTML = scansView();
     else if (state.view === "scheduled") c.innerHTML = scheduledView();
-    else c.innerHTML = launcher() + scanPanel() + findingsSection();
+    else c.innerHTML = (state.scan ? scanPanel() + findingsSection() + launcher() : launcher() + findingsSection());
     bind();
+    scrollFeed();
     $("#crumb").textContent = state.view === "scans" ? "/ scans" : state.view === "scheduled" ? "/ scheduled" : "";
   }
   function refreshDynamic() {
     if (state.view !== "scan") return;
-    var p = $("#scanPanel"); if (p) p.outerHTML = scanPanel(); else if (state.scan) { var l = $("#launcher"); if (l) l.insertAdjacentHTML("afterend", scanPanel()); }
+    var p = $("#scanPanel"); if (p) p.outerHTML = scanPanel(); else if (state.scan) { render(); return; }
     var f = $("#findings"); if (f) f.outerHTML = findingsSection();
     bind();
+    scrollFeed();
     var b = $("#scanGo"); if (b) { b.disabled = false; b.textContent = "Launch engagement"; }
   }
 
@@ -328,6 +340,8 @@
       state.scan = { id: r.id, target: r.target || target, mode: mode, status: r.status || "running", current_phase: 1 };
       state.counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
       state.findings = []; state.done = false; state.warned = false; state.t0 = Date.now(); state.filter = "all";
+      state.activity = []; state.lastPhase = 0; state.seenFinds = {};
+      pushAct("start", "engagement started · " + target);
       toast("Engagement started", "Working " + target + " across 22 phases.");
       render();
       var p = $("#scanPanel"); if (p) p.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -345,12 +359,23 @@
     scanStatus(id).then(function (r) {
       if (!r.scan) return;
       state.scan.status = r.scan.status;
-      state.scan.current_phase = r.scan.current_phase || state.scan.current_phase;
+      var np = r.scan.current_phase || state.scan.current_phase;
+      if (np > state.lastPhase) {
+        for (var pn = state.lastPhase + 1; pn <= np; pn++) pushAct("phase", "phase " + String(pn).padStart(2, "0") + " — " + (PHASES[pn - 1] || ""));
+        state.lastPhase = np;
+      }
+      state.scan.current_phase = np;
       state.scan.mode = r.scan.mode || state.scan.mode;
       state.counts = r.counts || state.counts;
       var finished = r.scan.status === "completed" || r.scan.status === "failed" || r.scan.completed_at;
       return listFindings(id, 100).then(function (fr) {
         state.findings = fr.findings || [];
+        state.findings.slice().reverse().forEach(function (f) {
+          if (!state.seenFinds[f.id]) {
+            state.seenFinds[f.id] = 1;
+            pushAct("find", "proven · " + SEV_LABEL[(f.severity || "info").toLowerCase()] + " — " + cleanTitle(f.title) + (f.cvss != null ? " · CVSS " + f.cvss : ""));
+          }
+        });
         if (state.findings.length > prev) {
           var n = state.findings[0];
           if (n) toast("Finding proven", SEV_LABEL[(n.severity || "info").toLowerCase()] + " · " + cleanTitle(n.title), "ok");
@@ -358,6 +383,8 @@
         if (finished) {
           state.done = true; stopPoll();
           var c = state.counts || {};
+          var tot = SEV.reduce(function (a, k) { return a + (c[k] || 0); }, 0);
+          pushAct("done", "engagement complete · " + tot + " findings reproduced");
           toast("Engagement complete", (c.critical || 0) + " critical, " + (c.high || 0) + " high, " + (c.medium || 0) + " medium — all reproduced.", "ok");
         }
         refreshDynamic();
@@ -377,6 +404,14 @@
       state.counts = st.counts || {}; state.findings = fr.findings || []; state.filter = "all";
       state.done = st.scan.status === "completed" || !!st.scan.completed_at;
       state.t0 = st.scan.started_at ? new Date(st.scan.started_at).getTime() : Date.now();
+      state.lastPhase = st.scan.current_phase || 22; state.seenFinds = {};
+      state.activity = [];
+      pushAct("start", "opened engagement · " + state.scan.target);
+      state.findings.slice().reverse().forEach(function (f) {
+        state.seenFinds[f.id] = 1;
+        pushAct("find", "proven · " + SEV_LABEL[(f.severity || "info").toLowerCase()] + " — " + cleanTitle(f.title) + (f.cvss != null ? " · CVSS " + f.cvss : ""));
+      });
+      if (state.done) { var tot = SEV.reduce(function (a, k) { return a + (state.counts[k] || 0); }, 0); pushAct("done", "engagement complete · " + tot + " findings reproduced"); }
       render();
       if (!state.done) startPoll();
       var p = $("#scanPanel"); if (p) p.scrollIntoView({ block: "start" });
