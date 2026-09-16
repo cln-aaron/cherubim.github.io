@@ -24,6 +24,7 @@
   var SEV_LABEL = { critical: "Critical", high: "High", medium: "Medium", low: "Low", info: "Info" };
   var SEV_COLOR = { critical: "#FC2B32", high: "#FF7A1A", medium: "#FFC400", low: "#3B9EFF", info: "#8A94A6" };
   var SEV_RANK = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+  var FREQ = { daily: "Daily", weekly: "Weekly", monthly: "Monthly" };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
@@ -54,8 +55,12 @@
     if (scanId) q += "&scan_id=" + encodeURIComponent(scanId);
     return api(q);
   }
+  function listScans() { return api("/scanlist"); }
+  function listSchedules() { return api("/schedules"); }
+  function createSchedule(s) { return api("/schedules", { method: "POST", body: s }); }
+  function deleteSchedule(id) { return api("/schedules?id=" + encodeURIComponent(id), { method: "DELETE" }); }
 
-  var state = { scan: null, counts: null, findings: [], filter: "all", poll: null, t0: 0, done: false, warned: false };
+  var state = { view: "scan", scan: null, counts: null, findings: [], filter: "all", poll: null, t0: 0, done: false, warned: false, scans: [], schedules: [] };
 
   function toast(title, msg, kind) {
     var t = document.createElement("div");
@@ -67,6 +72,19 @@
 
   function cleanTitle(t) { return String(t || "Finding").split(" — ")[0].replace(/\s*\((attribute-context|execution proof[^)]*)\)/gi, "").trim(); }
   function elapsed(ms) { var s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); }
+  function ago(ts) {
+    if (!ts) return "—";
+    var s = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+    if (s < 0) return "in " + fmtDur(-s);
+    if (s < 60) return "just now";
+    return fmtDur(s) + " ago";
+  }
+  function fmtDur(s) {
+    if (s < 3600) return Math.floor(s / 60) + "m";
+    if (s < 86400) return Math.floor(s / 3600) + "h";
+    return Math.floor(s / 86400) + "d";
+  }
+  function when(ts) { if (!ts) return "—"; try { return new Date(ts).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch (e) { return String(ts); } }
   function normTarget(v) {
     v = v.trim();
     if (!v) return v;
@@ -75,6 +93,7 @@
     return "https://" + v;
   }
 
+  /* ---------- scan view ---------- */
   function launcher() {
     return '<div class="launch" id="launcher">' +
       '<h2>Run a pentest</h2>' +
@@ -93,15 +112,12 @@
   function donut(counts) {
     var total = SEV.reduce(function (a, s) { return a + (counts[s] || 0); }, 0);
     var r = 34, c = 2 * Math.PI * r, off = 0, arcs = "";
-    if (total > 0) {
-      SEV.forEach(function (s) {
-        var v = counts[s] || 0; if (!v) return;
-        var len = c * (v / total);
-        arcs += '<circle cx="44" cy="44" r="' + r + '" fill="none" stroke="' + SEV_COLOR[s] + '" stroke-width="12" ' +
-          'stroke-dasharray="' + len.toFixed(1) + ' ' + (c - len).toFixed(1) + '" stroke-dashoffset="' + (-off).toFixed(1) + '" transform="rotate(-90 44 44)"/>';
-        off += len;
-      });
-    }
+    if (total > 0) SEV.forEach(function (s) {
+      var v = counts[s] || 0; if (!v) return;
+      var len = c * (v / total);
+      arcs += '<circle cx="44" cy="44" r="' + r + '" fill="none" stroke="' + SEV_COLOR[s] + '" stroke-width="12" stroke-dasharray="' + len.toFixed(1) + ' ' + (c - len).toFixed(1) + '" stroke-dashoffset="' + (-off).toFixed(1) + '" transform="rotate(-90 44 44)"/>';
+      off += len;
+    });
     return '<svg class="donut" width="88" height="88" viewBox="0 0 88 88">' +
       '<circle cx="44" cy="44" r="' + r + '" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="12"/>' + arcs +
       '<text x="44" y="42" text-anchor="middle" fill="#fff" font-family="Space Grotesk" font-size="20" font-weight="700">' + total + '</text>' +
@@ -114,38 +130,31 @@
     var ph = Math.max(1, Math.min(22, sc.current_phase || 1));
     var pct = state.done ? 100 : Math.round((ph / 22) * 100);
     var running = !state.done && (sc.status === "running" || sc.status === "queued");
-
+    var total = SEV.reduce(function (a, s) { return a + (cn[s] || 0); }, 0);
     var ticks = "";
     for (var i = 0; i < 22; i++) {
       var cls = state.done || i + 1 < ph ? "done" : (i + 1 === ph ? "on" : "");
       ticks += '<div class="ptick ' + cls + '" title="' + esc(PHASES[i]) + '">' + (i + 1) + '</div>';
     }
-
-    var legend = SEV.map(function (s) {
-      return '<div class="lg"><i class="i-' + SEV_ABBR[s] + '"></i>' + SEV_LABEL[s] + '<b>' + (cn[s] || 0) + '</b></div>';
-    }).join("");
-
+    var legend = SEV.map(function (s) { return '<div class="lg"><i class="i-' + SEV_ABBR[s] + '"></i>' + SEV_LABEL[s] + '<b>' + (cn[s] || 0) + '</b></div>'; }).join("");
     return '<div class="scan" id="scanPanel">' +
       '<div class="scan-top"><div>' +
       '<div class="eyebrow-min">' + (running ? '<span class="live-dot"></span> Live engagement' : 'Engagement complete') + '</div>' +
       '<div class="tgt">' + esc(sc.target) + '</div>' +
       '<div class="meta">' + esc(sc.mode || "single") + ' · ' + esc((sc.id || "").slice(0, 8)) + ' · ' + elapsed(Date.now() - state.t0) + '</div></div>' +
       '<span class="stbadge ' + (state.done ? "ok" : "run") + '">' + esc(state.done ? "completed" : (sc.status || "running")) + '</span></div>' +
-      '<div class="scan-body">' +
-      '<div class="scan-main">' +
+      '<div class="scan-body"><div class="scan-main">' +
       '<div class="phase-head"><span class="nm">Phase <b>' + ph + '</b> / 22 — ' + esc(PHASES[ph - 1] || "") + '</span><span class="pct">' + pct + '%</span></div>' +
       '<div class="pbar"><i style="width:' + pct + '%"></i></div>' +
       '<div class="ptrack">' + ticks + '</div>' +
-      '<div class="phase-log">' + phaseLog(ph) + '</div>' +
-      '</div>' +
+      '<div class="phase-log">' + phaseLog(ph) + '</div></div>' +
       '<div class="scan-side">' +
       '<div class="sevsum">' + donut(cn) + '<div class="sevlegend">' + legend + '</div></div>' +
-      '<div class="metricline"><span>Reproduced</span><b>' + SEV.reduce(function (a, s) { return a + (cn[s] || 0); }, 0) + ' / ' + SEV.reduce(function (a, s) { return a + (cn[s] || 0); }, 0) + '</b></div>' +
+      '<div class="metricline"><span>Reproduced</span><b>' + total + '</b></div>' +
       '<div class="metricline"><span>Elapsed</span><b>' + elapsed(Date.now() - state.t0) + '</b></div>' +
       '<div class="metricline"><span>Mode</span><b>' + esc(sc.mode || "single") + '</b></div>' +
       '</div></div></div>';
   }
-
   function phaseLog(ph) {
     var rows = [];
     for (var i = Math.max(0, ph - 5); i < ph; i++) {
@@ -169,7 +178,6 @@
       var n = s === "all" ? state.findings.length : (counts[s] || 0);
       return '<button class="chip' + (state.filter === s ? " on" : "") + '" data-filter="' + s + '">' + (s === "all" ? "All" : SEV_LABEL[s]) + ' ' + n + '</button>';
     }).join("");
-
     var body;
     if (!list.length) {
       body = '<div class="fempty">' + (state.scan && !state.done ? "No reproduced findings yet. Cherubim reports only what it can prove." : "Findings will appear here once an engagement runs.") + '</div>';
@@ -187,33 +195,98 @@
             '<td>' + (proven ? '<span class="fproven">exploit proven</span>' : '<span class="fmono">reported</span>') + '</td></tr>';
         }).join("") + '</tbody></table>';
     }
-
     return '<div id="findings"><div class="fsection-head"><h3>Findings</h3><span class="cnt">' + state.findings.length + ' total</span></div>' +
       '<div class="fchips">' + chips + '</div>' + body + '</div>';
   }
 
-  function paint() {
-    $("#content").innerHTML = launcher() + scanPanel() + findingsSection();
-    bind();
-    var ct = $("#navFindCt"); if (ct) ct.textContent = state.findings.length ? String(state.findings.length) : "";
+  /* ---------- scans list view ---------- */
+  function scansView() {
+    var rows;
+    if (!state.scans.length) {
+      rows = '<div class="fempty">No scans recorded yet. Launch one from New scan and it will appear here.</div>';
+    } else {
+      rows = '<table class="ftable"><thead><tr><th>Target</th><th>Mode</th><th>Status</th><th>Findings</th><th>Started</th></tr></thead><tbody>' +
+        state.scans.map(function (s) {
+          var st = s.status || "—", stcls = st === "completed" ? "ok" : (st === "running" || st === "queued" ? "run" : "");
+          var total = s.counts ? SEV.reduce(function (a, k) { return a + (s.counts[k] || 0); }, 0) : null;
+          return '<tr data-scan="' + esc(s.id) + '">' +
+            '<td class="ftitle">' + esc(s.target) + '</td>' +
+            '<td class="fmono">' + esc(s.mode || "single") + '</td>' +
+            '<td>' + (stcls ? '<span class="stbadge ' + stcls + '" style="font-size:10px;padding:3px 9px">' + esc(st) + '</span>' : '<span class="fmono">' + esc(st) + '</span>') + '</td>' +
+            '<td class="fmono">' + (total == null ? "—" : total) + '</td>' +
+            '<td class="fmono">' + when(s.createdAt || s.started_at) + '</td></tr>';
+        }).join("") + '</tbody></table>';
+    }
+    return '<div class="fsection-head"><h3>Scans</h3><span class="cnt">' + state.scans.length + ' recorded</span></div>' +
+      '<p class="lnote" style="margin:2px 0 14px">Every engagement you launch is recorded here. Click one to open its findings.</p>' + rows;
   }
 
+  /* ---------- scheduled view ---------- */
+  function scheduledView() {
+    var form = '<div class="launch" id="schedForm"><h2>Schedule a recurring scan</h2>' +
+      '<p class="sub">Cherubim re-tests the target on a cadence and records each run under Scans. Scheduled runs respect the same allowed-target list.</p>' +
+      '<form class="lform" id="schedFormEl">' +
+      '<div class="lrow"><label>Target</label><input id="schTarget" type="text" autocomplete="off" spellcheck="false" placeholder="https://app.example.com   ·   *.example.com" required></div>' +
+      '<div class="lgrid">' +
+      '<div class="lrow"><label>Mode</label><select id="schMode"><option value="single">Single target</option><option value="wildcard">Wildcard</option></select></div>' +
+      '<div class="lrow"><label>Frequency</label><select id="schFreq"><option value="daily">Daily</option><option value="weekly" selected>Weekly</option><option value="monthly">Monthly</option></select></div>' +
+      '</div>' +
+      '<div class="lgrid">' +
+      '<div class="lrow"><label>Report from severity</label><select id="schSev"><option value="info">Info and above</option><option value="low" selected>Low and above</option><option value="medium">Medium and above</option><option value="high">High and above</option><option value="critical">Critical only</option></select></div>' +
+      '<div class="lrow"><label>Time (UTC)</label><input id="schTime" type="time" value="02:00"></div>' +
+      '</div>' +
+      '<div class="lactions"><button class="b b-primary" id="schGo" type="submit">Create schedule</button>' +
+      '<span class="lnote">Each run spends one credit at the scheduled time</span></div>' +
+      '</form></div>';
+
+    var list;
+    if (!state.schedules.length) {
+      list = '<div class="fempty">No schedules yet. Create one above to re-test a target automatically.</div>';
+    } else {
+      list = '<table class="ftable"><thead><tr><th>Target</th><th>Mode</th><th>Frequency</th><th>Next run</th><th>Last run</th><th></th></tr></thead><tbody>' +
+        state.schedules.map(function (s) {
+          return '<tr>' +
+            '<td class="ftitle">' + esc(s.target) + '</td>' +
+            '<td class="fmono">' + esc(s.mode || "single") + '</td>' +
+            '<td class="fmono">' + (FREQ[s.frequency] || esc(s.frequency)) + ' · ' + String(s.hour).padStart(2, "0") + ':' + String(s.minute || 0).padStart(2, "0") + ' UTC</td>' +
+            '<td class="fmono">' + when(s.nextRun) + '</td>' +
+            '<td class="fmono">' + (s.lastRun ? ago(s.lastRun) : "—") + '</td>' +
+            '<td><button class="b b-ghost b-sm" data-delsched="' + esc(s.id) + '">Delete</button></td></tr>';
+        }).join("") + '</tbody></table>';
+    }
+    return form +
+      '<div class="fsection-head" style="margin-top:8px"><h3>Active schedules</h3><span class="cnt">' + state.schedules.length + '</span></div>' +
+      '<div style="margin-top:12px">' + list + '</div>';
+  }
+
+  /* ---------- render ---------- */
+  function render() {
+    var c = $("#content");
+    if (state.view === "scans") c.innerHTML = scansView();
+    else if (state.view === "scheduled") c.innerHTML = scheduledView();
+    else c.innerHTML = launcher() + scanPanel() + findingsSection();
+    bind();
+    $("#crumb").textContent = state.view === "scans" ? "/ scans" : state.view === "scheduled" ? "/ scheduled" : "";
+  }
   function refreshDynamic() {
+    if (state.view !== "scan") return;
     var p = $("#scanPanel"); if (p) p.outerHTML = scanPanel(); else if (state.scan) { var l = $("#launcher"); if (l) l.insertAdjacentHTML("afterend", scanPanel()); }
     var f = $("#findings"); if (f) f.outerHTML = findingsSection();
     bind();
     var b = $("#scanGo"); if (b) { b.disabled = false; b.textContent = "Launch engagement"; }
-    var ct = $("#navFindCt"); if (ct) ct.textContent = state.findings.length ? String(state.findings.length) : "";
   }
 
   function bind() {
-    var form = $("#scanForm");
-    if (form) form.onsubmit = function (e) { e.preventDefault(); launch(); };
-    $$(".ftable tbody tr").forEach(function (r) { r.onclick = function () { openFinding(r.getAttribute("data-fid")); }; });
+    var form = $("#scanForm"); if (form) form.onsubmit = function (e) { e.preventDefault(); launch(); };
+    $$(".ftable tbody tr[data-fid]").forEach(function (r) { r.onclick = function () { openFinding(r.getAttribute("data-fid")); }; });
     $$(".chip[data-filter]").forEach(function (c) { c.onclick = function () { state.filter = c.getAttribute("data-filter"); refreshDynamic(); }; });
+    $$(".ftable tbody tr[data-scan]").forEach(function (r) { r.onclick = function () { openScan(r.getAttribute("data-scan")); }; });
+    var sf = $("#schedFormEl"); if (sf) sf.onsubmit = function (e) { e.preventDefault(); submitSchedule(); };
+    $$("[data-delsched]").forEach(function (b) { b.onclick = function () { removeSchedule(b.getAttribute("data-delsched")); }; });
     try { var lt = localStorage.getItem("cb_last_target"), ti = $("#scanTarget"); if (lt && ti && !ti.value) ti.value = lt; } catch (e) {}
   }
 
+  /* ---------- finding drawer ---------- */
   function openFinding(id) {
     var f = state.findings.filter(function (x) { return x.id === id; })[0]; if (!f) return;
     var s = (f.severity || "info").toLowerCase(), ab = SEV_ABBR[s], ev = f.evidence || {};
@@ -244,19 +317,19 @@
   }
   function closeDrawer() { $("#scrim").classList.remove("open"); $("#drawer").classList.remove("open"); }
 
+  /* ---------- launch + poll ---------- */
   function launch() {
     var target = normTarget($("#scanTarget").value || "");
     var mode = $("#scanMode").value, sev = $("#scanSev").value;
     if (!target) { toast("Enter a target", "Add a URL, host or wildcard to test.", "err"); return; }
     var btn = $("#scanGo"); if (btn) { btn.disabled = true; btn.textContent = "Launching…"; }
     try { localStorage.setItem("cb_last_target", $("#scanTarget").value.trim()); } catch (e) {}
-
     createScan(target, mode, sev).then(function (r) {
       state.scan = { id: r.id, target: r.target || target, mode: mode, status: r.status || "running", current_phase: 1 };
       state.counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
       state.findings = []; state.done = false; state.warned = false; state.t0 = Date.now(); state.filter = "all";
       toast("Engagement started", "Working " + target + " across 22 phases.");
-      paint();
+      render();
       var p = $("#scanPanel"); if (p) p.scrollIntoView({ behavior: "smooth", block: "start" });
       startPoll();
     }).catch(function (err) {
@@ -264,10 +337,8 @@
       toast("Could not start", String(err.message || err), "err");
     });
   }
-
   function startPoll() { if (state.poll) clearInterval(state.poll); tick(); state.poll = setInterval(tick, PORTAL.pollMs); }
   function stopPoll() { if (state.poll) { clearInterval(state.poll); state.poll = null; } }
-
   function tick() {
     if (!state.scan) return;
     var id = state.scan.id, prev = state.findings.length;
@@ -296,15 +367,82 @@
     });
   }
 
+  /* ---------- open a recorded scan ---------- */
+  function openScan(id) {
+    setView("scan");
+    Promise.all([scanStatus(id), listFindings(id, 100)]).then(function (res) {
+      var st = res[0], fr = res[1];
+      if (!st.scan) return;
+      state.scan = { id: st.scan.id, target: st.scan.target, mode: st.scan.mode, status: st.scan.status, current_phase: st.scan.current_phase };
+      state.counts = st.counts || {}; state.findings = fr.findings || []; state.filter = "all";
+      state.done = st.scan.status === "completed" || !!st.scan.completed_at;
+      state.t0 = st.scan.started_at ? new Date(st.scan.started_at).getTime() : Date.now();
+      render();
+      if (!state.done) startPoll();
+      var p = $("#scanPanel"); if (p) p.scrollIntoView({ block: "start" });
+    }).catch(function (err) { toast("Could not open scan", String(err.message || err), "err"); });
+  }
+
+  /* ---------- schedules ---------- */
+  function submitSchedule() {
+    var target = normTarget($("#schTarget").value || "");
+    if (!target) { toast("Enter a target", "Add a target to schedule.", "err"); return; }
+    var time = ($("#schTime").value || "02:00").split(":");
+    var s = { target: target, mode: $("#schMode").value, severity_filter: $("#schSev").value, frequency: $("#schFreq").value, hour: +time[0] || 0, minute: +time[1] || 0 };
+    var btn = $("#schGo"); if (btn) { btn.disabled = true; btn.textContent = "Creating…"; }
+    createSchedule(s).then(function () {
+      toast("Schedule created", FREQ[s.frequency] + " scan of " + target + " scheduled.", "ok");
+      loadSchedules();
+    }).catch(function (err) {
+      if (btn) { btn.disabled = false; btn.textContent = "Create schedule"; }
+      toast("Could not create schedule", String(err.message || err), "err");
+    });
+  }
+  function removeSchedule(id) {
+    deleteSchedule(id).then(function () { toast("Schedule removed", "", "ok"); loadSchedules(); })
+      .catch(function (err) { toast("Could not delete", String(err.message || err), "err"); });
+  }
+
+  /* ---------- data loaders ---------- */
+  function loadScans() {
+    return listScans().then(function (r) {
+      var scans = r.scans || [];
+      state.scans = scans;
+      var ct = $("#navScanCt"); if (ct) ct.textContent = scans.length ? String(scans.length) : "";
+      if (state.view === "scans") render();
+      // enrich with live status/counts (best effort, capped)
+      scans.slice(0, 25).forEach(function (s) {
+        scanStatus(s.id).then(function (st) {
+          if (st.scan) { s.status = st.scan.status; s.counts = st.counts; s.mode = st.scan.mode || s.mode; if (state.view === "scans") render(); }
+        }).catch(function () {});
+      });
+    }).catch(function () {});
+  }
+  function loadSchedules() {
+    return listSchedules().then(function (r) {
+      state.schedules = r.schedules || [];
+      var ct = $("#navSchedCt"); if (ct) ct.textContent = state.schedules.length ? String(state.schedules.length) : "";
+      if (state.view === "scheduled") render();
+    }).catch(function () {});
+  }
   function loadRecent() {
     listFindings(null, 100).then(function (fr) {
-      if (!state.scan && fr.findings && fr.findings.length) {
-        state.findings = fr.findings;
-        refreshDynamic();
-      }
+      if (!state.scan && state.view === "scan" && fr.findings && fr.findings.length) { state.findings = fr.findings; refreshDynamic(); }
     }).catch(function () {});
   }
 
+  /* ---------- view switching ---------- */
+  function setView(v) {
+    state.view = v;
+    $$(".rail-item[data-nav]").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-nav") === v); });
+    $("#rail").classList.remove("open");
+    render();
+    if (v === "scans") loadScans();
+    if (v === "scheduled") loadSchedules();
+    if (v === "scan") { var ti = $("#scanTarget"); if (ti) ti.focus(); }
+  }
+
+  /* ---------- identity ---------- */
   function initialsFor(name, email) {
     var s = name && name !== email ? name : (email || "").split("@")[0];
     var parts = s.split(/[ ._-]+/).filter(Boolean);
@@ -327,21 +465,14 @@
       .then(function (j) { if (j && (j.email || j.name)) applyUser({ name: j.name, email: j.email }); })
       .catch(function () {});
 
-    paint();
+    render();
     loadRecent();
+    loadScans();
+    loadSchedules();
 
     $("#scrim").onclick = closeDrawer;
     var lo = $("#logout"); if (lo) lo.onclick = function () { location.href = "/cdn-cgi/access/logout"; };
     var mb = $("#menuBtn"); if (mb) mb.onclick = function () { $("#rail").classList.toggle("open"); };
-    $$(".rail-item[data-nav]").forEach(function (b) {
-      b.onclick = function () {
-        $$(".rail-item").forEach(function (x) { x.classList.remove("on"); });
-        b.classList.add("on");
-        var t = b.getAttribute("data-nav") === "findings" ? $("#findings") : $("#launcher");
-        if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
-        $("#rail").classList.remove("open");
-        if (b.getAttribute("data-nav") === "scan") { var ti = $("#scanTarget"); if (ti) ti.focus(); }
-      };
-    });
+    $$(".rail-item[data-nav]").forEach(function (b) { b.onclick = function () { setView(b.getAttribute("data-nav")); }; });
   });
 })();
