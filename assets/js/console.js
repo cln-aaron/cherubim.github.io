@@ -291,26 +291,118 @@
       '</div></div>';
   }
 
+  var AGENTS = [
+    { id: "planner", role: "Orchestrator", state: "run", task: "Decomposing objective: reach crown jewel", tools: "goal-graph",
+      model: "cb-planner-7b (distilled, reasoning fine tune)", actions: 318, host: "cb-orch-01",
+      skills: ["Goal decomposition", "Subgoal scheduling", "Replanning on feedback", "Supervisor arbitration"],
+      recent: [
+        ["09:11:12", "plan.expand", "goal: reach customer statement store -> 5 subgoals"],
+        ["09:21:48", "plan.replan", "added subgoal: lateral via identity subnet"],
+        ["09:31:02", "plan.dispatch", "task -> agent.identity (kerberoast)"]
+      ] },
+    { id: "agent.recon", role: "Reconnaissance", state: "ok", task: "Mapped 1,284 assets across 7 surfaces", tools: "nmap, amass",
+      model: "cb-recon-tooluse-v3", actions: 502, host: "cb-recon-04",
+      skills: ["Surface enumeration", "Service version fingerprinting", "Subdomain discovery", "Asset clustering"],
+      recent: [
+        ["09:12:09", "tool.call", "nmap -sV -p- 10.4.0.0/16 --open --min-rate 1500"],
+        ["09:14:30", "tool.call", "amass enum -d northwind.io -active"],
+        ["09:16:01", "blackboard.write", "412 hosts up, 38 unique IPs, 142 names"]
+      ] },
+    { id: "agent.network", role: "Network", state: "run", task: "NTLM relay path under evaluation", tools: "Responder, CrackMapExec",
+      model: "cb-net-tooluse-v3", actions: 211, host: "cb-net-02",
+      skills: ["Segmentation review", "NTLM relay reasoning", "Wireless and VLAN abuse", "Lateral movement"],
+      recent: [
+        ["09:23:11", "tool.call", "responder -I eth1 -wF"],
+        ["09:24:07", "tool.call", "nxc smb 10.4.0.0/24 -u svc_ci -p '[recovered]' --shares"],
+        ["09:25:48", "blackboard.write", "relay primitive proven against FS01"]
+      ] },
+    { id: "agent.web", role: "Web & API", state: "ok", task: "Proved settlement logic bypass", tools: "Burp engine, ffuf",
+      model: "cb-web-tooluse-v3", actions: 478, host: "cb-web-07",
+      skills: ["Business logic abuse", "Access control mapping", "Injection classes", "Chained app flaws"],
+      recent: [
+        ["09:14:02", "tool.call", "ffuf -u https://payments/api/v2/FUZZ -w api.txt"],
+        ["09:15:24", "tool.call", "POST /api/v2/settle {amount:-50000}"],
+        ["09:15:25", "blackboard.write", "F-3303 candidate -> validator"]
+      ] },
+    { id: "agent.cloud", role: "Cloud & K8s", state: "run", task: "Assuming node role via IMDS", tools: "ScoutSuite, kube-hunter",
+      model: "cb-cloud-tooluse-v3", actions: 264, host: "cb-cld-03",
+      skills: ["IAM reasoning", "Container escape", "Bucket reach analysis", "Metadata service abuse"],
+      recent: [
+        ["09:18:31", "tool.call", "kubectl exec payments-7f4 -- curl 169.254.169.254/..."],
+        ["09:18:32", "tool.call", "aws s3 ls s3://nw-statements --no-sign-request"],
+        ["09:18:34", "blackboard.write", "node role + public bucket -> validator"]
+      ] },
+    { id: "agent.identity", role: "Identity & AD", state: "run", task: "Kerberoast and delegation review", tools: "BloodHound, impacket",
+      model: "cb-id-tooluse-v3", actions: 372, host: "cb-id-02",
+      skills: ["Kerberos abuse", "Delegation analysis", "Trust path search", "Credential recovery"],
+      recent: [
+        ["09:19:11", "tool.call", "GetUserSPNs.py nw-corp.local/svc_ci -request"],
+        ["09:20:22", "tool.call", "bloodhound-python -u svc_ci -c All"],
+        ["09:21:48", "blackboard.write", "DA path: svc_ci -> svcDelegate -> dc1"]
+      ] },
+    { id: "agent.exploit", role: "Exploitation", state: "ok", task: "Built PoC for F-3303", tools: "msf modules, custom",
+      model: "cb-exp-tooluse-v3", actions: 144, host: "cb-exp-05",
+      skills: ["Exploit synthesis", "Payload shaping", "Chain composition", "Sandbox replay handoff"],
+      recent: [
+        ["09:22:09", "tool.call", "msfvenom -p windows/x64/... -f raw"],
+        ["09:23:01", "artifact.publish", "poc/F-3303 settlement-invariant-bypass.ts"],
+        ["09:23:02", "validator.dispatch", "F-3303 -> deterministic validator"]
+      ] },
+    { id: "validator", role: "Validation", state: "run", task: "Reproducing F-3304 in sandbox", tools: "deterministic replay",
+      model: "non-model code (sandboxed runner)", actions: 129, host: "cb-validator",
+      skills: ["Sandbox cloning", "Deterministic replay", "Signed evidence sealing", "False positive rejection"],
+      recent: [
+        ["09:24:11", "sandbox.spawn", "payments-sandbox-c4f1 (isolated tenant)"],
+        ["09:24:42", "replay.run", "F-3303 reproduced 3/3"],
+        ["09:24:43", "evidence.seal", "sha256 8f3a...c2b1 (hsm signed)"]
+      ] },
+    { id: "agent.social", role: "Social engineering", state: "idle", task: "Awaiting authorization for CMP-2044", tools: "narrative engine",
+      model: "cb-narrative-7b", actions: 0, host: "cb-narr-01",
+      skills: ["Pretext composition", "Cross channel narrative state", "Distress signal detection", "Consent gating"],
+      recent: [
+        ["09:08:00", "auth.wait", "AUTH-2026-0519-NW signature pending"],
+        ["09:09:14", "roster.read", "Finance roster 118 targets (scoped)"],
+        ["09:09:15", "guardrail.check", "distress halt + watermarking active"]
+      ] },
+    { id: "agent.report", role: "Reporting", state: "idle", task: "Compliance mapping queued", tools: "framework mapper",
+      model: "cb-report-v2", actions: 41, host: "cb-rep-01",
+      skills: ["Control mapping", "Board narrative", "Evidence pack assembly", "One-click export"],
+      recent: [
+        ["09:07:11", "framework.map", "F-3301 -> NIST PR.AC-1, Cyber Trust A.5"],
+        ["09:07:14", "framework.map", "F-3302 -> NIST PR.DS-1, PDPA, MAS TRM 11"],
+        ["09:07:18", "artifact.publish", "board-pack-draft.json"]
+      ] }
+  ];
+
+  var TOOLS_REG = [
+    { name: "nmap", cat: "Recon", calls: 412, state: "ok", schema: "scan(target:CIDR, ports:string, rate:int) -> Service[]", desc: "Service version fingerprinting and host discovery, mediated and rate limited." },
+    { name: "amass", cat: "Recon", calls: 88, state: "ok", schema: "enum(domain:string, active:bool) -> Asset[]", desc: "Passive and active subdomain and DNS surface mapping." },
+    { name: "Burp engine", cat: "Web / API", calls: 256, state: "ok", schema: "intercept(req:Request, mutate:Strategy) -> Response[]", desc: "Mediated HTTP interception and replay with typed schema." },
+    { name: "ffuf", cat: "Web / API", calls: 1903, state: "ok", schema: "fuzz(url:URL, wordlist:File, filters:Filter[]) -> Path[]", desc: "Content discovery and parameter fuzzing under engagement rate caps." },
+    { name: "BloodHound", cat: "Identity", calls: 31, state: "ok", schema: "graph.query(cypher:string) -> Path[]", desc: "Directory trust path search across users, groups and computers." },
+    { name: "impacket", cat: "Identity", calls: 64, state: "ok", schema: "kerberos.s4u2self(user:str, impersonate:str) -> TGT", desc: "Kerberos primitives used through typed, audited wrappers." },
+    { name: "Responder", cat: "Network", calls: 12, state: "run", schema: "listen(iface:string, modes:string[]) -> CapturedHash[]", desc: "Broadcast poisoning under engagement rules with sandbox capture." },
+    { name: "CrackMapExec", cat: "Network", calls: 47, state: "ok", schema: "smb.enum(targets:CIDR, creds:Cred) -> Share[]", desc: "Network protocol abuse for lateral movement, always logged." },
+    { name: "ScoutSuite", cat: "Cloud", calls: 19, state: "ok", schema: "audit(profile:string) -> Finding[]", desc: "Multi-cloud configuration audit through read-only role." },
+    { name: "kube-hunter", cat: "Cloud", calls: 23, state: "run", schema: "hunt(cluster:string, scope:string) -> Finding[]", desc: "Kubernetes attack surface enumeration with safe defaults." },
+    { name: "trufflehog", cat: "Supply chain", calls: 140, state: "ok", schema: "scan(repo:string|stream) -> Secret[]", desc: "Secret discovery in code and CI artefacts with redaction." },
+    { name: "deterministic validator", cat: "Validation", calls: 38, state: "run", schema: "replay(finding:ID, ctx:Capture) -> SealedEvidence", desc: "Non-model code that reproduces an exploit in an isolated tenant and seals the proof." },
+    { name: "voice clone", cat: "Synthetic media", calls: 4, state: "idle", schema: "synthesize(persona:ID, script:string) -> AudioStream", desc: "Watermarked voice cloning of a consented persona only." },
+    { name: "face synthesis", cat: "Synthetic media", calls: 2, state: "idle", schema: "feed(camera:VirtualDev, persona:ID) -> VideoStream", desc: "Live face synthesis fed to a virtual camera, watermarked per frame." }
+  ];
+
+  function agentById(id) { return AGENTS.filter(function (a) { return a.id === id; })[0]; }
+  function toolByName(n) { return TOOLS_REG.filter(function (t) { return t.name === n; })[0]; }
+
+  function shortHash(seed) {
+    var h = 0, s = String(seed) + "::cb-prov";
+    for (var i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+    var x = Math.abs(h).toString(16);
+    while (x.length < 8) x = "0" + x;
+    return x.slice(0, 8);
+  }
+
   function vAgents() {
-    var agents = [
-      ["planner", "Orchestrator", "run", "Decomposing objective: reach crown jewel", "goal-graph"],
-      ["agent.recon", "Reconnaissance", "ok", "Mapped 1,284 assets across 7 surfaces", "nmap, amass"],
-      ["agent.network", "Network", "run", "NTLM relay path under evaluation", "Responder, CrackMapExec"],
-      ["agent.web", "Web & API", "ok", "Proved settlement logic bypass", "Burp engine, ffuf"],
-      ["agent.cloud", "Cloud & K8s", "run", "Assuming node role via IMDS", "ScoutSuite, kube-hunter"],
-      ["agent.identity", "Identity & AD", "run", "Kerberoast and delegation review", "BloodHound, impacket"],
-      ["agent.exploit", "Exploitation", "ok", "Built PoC for F-3303", "msf modules, custom"],
-      ["validator", "Validation", "run", "Reproducing F-3304 in sandbox", "deterministic replay"],
-      ["agent.social", "Social engineering", "idle", "Awaiting authorization for CMP-2044", "narrative engine"],
-      ["agent.report", "Reporting", "idle", "Compliance mapping queued", "framework mapper"]
-    ];
-    var tools = [
-      ["nmap", "Recon", 412, "ok"], ["amass", "Recon", 88, "ok"], ["Burp engine", "Web / API", 256, "ok"],
-      ["ffuf", "Web / API", 1903, "ok"], ["BloodHound", "Identity", 31, "ok"], ["impacket", "Identity", 64, "ok"],
-      ["Responder", "Network", 12, "run"], ["CrackMapExec", "Network", 47, "ok"], ["ScoutSuite", "Cloud", 19, "ok"],
-      ["kube-hunter", "Cloud", 23, "run"], ["trufflehog", "Supply chain", 140, "ok"], ["deterministic validator", "Validation", 38, "run"],
-      ["voice clone", "Synthetic media", 4, "idle"], ["face synthesis", "Synthetic media", 2, "idle"]
-    ];
     var plan = [
       ["Establish foothold on the perimeter", "done", [["Enumerate internet facing services", "done"], ["Exploit exposed Jenkins", "done"]]],
       ["Recover and reuse credentials", "done", [["Harvest CI secrets", "done"], ["Validate against identity provider", "done"]]],
@@ -321,27 +413,87 @@
     function dot(s) { return '<span class="dotp ' + (s === "run" ? "run" : (s === "ok" || s === "done") ? "ok" : "idle") + '"></span>'; }
     function pStat(s) { return s === "done" ? '<span class="st-ok">done</span>' : s === "run" ? '<span class="st-run">running</span>' : '<span class="st-mut">queued</span>'; }
 
+    var totalActions = AGENTS.reduce(function (a, x) { return a + x.actions; }, 0);
+    // Build provenance ledger from agents' recent signed actions
+    var prov = [];
+    AGENTS.forEach(function (a) {
+      a.recent.forEach(function (r) { prov.push([r[0], a.id, r[1], r[2], shortHash(a.id + r[0] + r[1])]); });
+    });
+    prov.sort(function (a, b) { return a[0] < b[0] ? 1 : -1; });
+    prov = prov.slice(0, 9);
+
     return '<div class="view-head"><div><span class="eyebrow">Agent mesh</span><h1>Multi-agent orchestration</h1>' +
       '<p>A planner decomposes the objective, a fleet of specialised agents executes through a typed tool interface, and the plan replans live as the environment responds.</p></div></div>' +
-      '<div class="stat-row">' + statCard("Agents in fleet", agents.length, "", "role specialised") +
-        statCard("Tools registered", tools.length, "", "typed, audited, MCP style") +
+      '<div class="stat-row">' + statCard("Agents in fleet", AGENTS.length, "", "role specialised") +
+        statCard("Tools registered", TOOLS_REG.length, "", "typed, audited, MCP style") +
         statCard("Plan depth", "5 / 12", "", "goals / tasks") +
-        statCard("Actions this run", "2,418", "up", "across the fleet") + '</div>' +
-      '<div class="grid-2"><div class="card-p"><h3>Agent fleet, coordinated</h3><p class="sub">Shared world model, supervisor arbitration, live artifact handoff</p>' +
+        statCard("Actions this run", totalActions.toLocaleString(), "up", "signed, append-only") + '</div>' +
+      '<div class="grid-2"><div class="card-p"><h3>Agent fleet, coordinated</h3><p class="sub">Click an agent for identity, capabilities and signed action history</p>' +
       '<table class="tbl"><thead><tr><th>Agent</th><th>Role</th><th>Status</th><th>Current task</th><th>Tools</th></tr></thead><tbody>' +
-      agents.map(function (a) {
-        return '<tr><td class="mono">' + a[0] + '</td><td>' + a[1] + '</td><td>' + dot(a[2]) + (a[2] === "run" ? "working" : a[2] === "ok" ? "ready" : "idle") + '</td><td class="st-mut">' + a[3] + '</td><td class="mono" style="color:var(--gold)">' + a[4] + '</td></tr>';
+      AGENTS.map(function (a) {
+        return '<tr class="clk" data-ag="' + a.id + '"><td class="mono">' + a.id + '</td><td>' + a.role + '</td><td>' + dot(a.state) + (a.state === "run" ? "working" : a.state === "ok" ? "ready" : "idle") + '</td><td class="st-mut">' + esc(a.task) + '</td><td class="mono" style="color:var(--gold)">' + a.tools + '</td></tr>';
       }).join("") + '</tbody></table></div>' +
       '<div class="card-p"><h3>Long-horizon plan</h3><p class="sub">Objective, subgoals, tasks. Replans as it learns.</p><div class="plan">' +
       plan.map(function (g) {
         return '<div class="plan-goal">' + dot(g[1]) + '<b>' + g[0] + '</b>' + pStat(g[1]) + '</div>' +
           g[2].map(function (t) { return '<div class="plan-task">' + dot(t[1]) + '<span>' + t[0] + '</span>' + pStat(t[1]) + '</div>'; }).join("");
       }).join("") + '</div></div></div>' +
-      '<div class="card-p span2" style="margin-top:14px"><h3>Tool integration</h3><p class="sub">Every capability is a registered tool with a schema, permissions and an audit record</p>' +
+      '<div class="card-p span2" style="margin-top:14px"><h3>Identity &amp; provenance ledger</h3><p class="sub">Every agent action is signed and chained. Click a row to inspect the agent.</p>' +
+      '<table class="tbl"><thead><tr><th>Time</th><th>Agent</th><th>Action</th><th>Detail</th><th>Signature</th></tr></thead><tbody>' +
+      prov.map(function (p) {
+        return '<tr class="clk" data-ag="' + p[1] + '"><td class="mono">' + p[0] + '</td><td class="mono" style="color:var(--gold)">' + p[1] + '</td><td>' + p[2] + '</td><td class="st-mut">' + esc(p[3]) + '</td><td class="mono">sig=' + p[4] + '</td></tr>';
+      }).join("") + '</tbody></table></div>' +
+      '<div class="card-p span2" style="margin-top:14px"><h3>Tool integration</h3><p class="sub">Every capability is a registered tool with a schema, permissions and an audit record. Click any tool.</p>' +
       '<table class="tbl"><thead><tr><th>Tool</th><th>Category</th><th>Calls this run</th><th>State</th></tr></thead><tbody>' +
-      tools.map(function (t) {
-        return '<tr><td class="mono" style="color:var(--gold)">' + t[0] + '</td><td>' + t[1] + '</td><td class="mono">' + t[2].toLocaleString() + '</td><td>' + dot(t[3]) + (t[3] === "run" ? "in use" : t[3] === "ok" ? "ready" : "standby") + '</td></tr>';
+      TOOLS_REG.map(function (t) {
+        return '<tr class="clk" data-tool="' + esc(t.name) + '"><td class="mono" style="color:var(--gold)">' + t.name + '</td><td>' + t.cat + '</td><td class="mono">' + t.calls.toLocaleString() + '</td><td>' + dot(t.state) + (t.state === "run" ? "in use" : t.state === "ok" ? "ready" : "standby") + '</td></tr>';
       }).join("") + '</tbody></table></div>';
+  }
+
+  function openAgent(id) {
+    var a = agentById(id); if (!a) return;
+    var stTxt = a.state === "run" ? "working" : a.state === "ok" ? "ready" : "idle";
+    var stTag = a.state === "run" ? "sev-med" : a.state === "ok" ? "sev-low" : "sev-low";
+    $("#drawerBody").innerHTML =
+      '<button class="x" data-x>&times;</button>' +
+      '<span style="font-family:JetBrains Mono;color:var(--gold);font-size:11px;letter-spacing:.16em">[ AGENT &middot; ' + a.id + ' ]</span>' +
+      '<h3>' + esc(a.role) + '</h3>' +
+      '<div class="meta"><span class="tag ' + stTag + '">' + stTxt + '</span><span class="tag sev-low">' + esc(a.host) + '</span><span class="tag sev-med">' + a.actions + ' actions</span><span class="tag" style="border:1px solid rgba(63,185,132,.4);color:#3FB984">identity: cb-id-' + shortHash(a.id) + '</span></div>' +
+      '<h5>Now</h5><p>' + esc(a.task) + '</p>' +
+      '<h5>Identity and provenance</h5><div class="code" style="white-space:pre">' +
+      "agent.id        = " + esc(a.id) + "\n" +
+      "agent.role      = " + esc(a.role) + "\n" +
+      "model           = " + esc(a.model) + "\n" +
+      "host            = " + esc(a.host) + "\n" +
+      "signing.key.id  = cb-hsm-1 / fingerprint <span class='gd'>" + shortHash(a.id + "key") + "</span>\n" +
+      "scope.binding   = AUTH-2026-0519-NW (signed by Aaron Ang)\n" +
+      "actions.signed  = <span class='ok'>" + a.actions + " / " + a.actions + " (100%)</span>\n" +
+      "ledger.chain    = sha256 ... <span class='gd'>" + shortHash(a.id + "chain") + "c2b1</span>" +
+      '</div>' +
+      '<h5>Capabilities</h5><ul class="feature-list">' + a.skills.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join("") + '</ul>' +
+      '<h5>Recent signed actions</h5><div class="code" style="white-space:pre">' +
+      a.recent.map(function (r) { return "<span class='c'>[" + r[0] + "]</span> <span class='gd'>" + r[1] + "</span> " + esc(r[2]) + " <span class='c'>sig=" + shortHash(a.id + r[0] + r[1]) + "</span> <span class='ok'>ok</span>"; }).join("\n") +
+      '</div>' +
+      '<h5>Tools</h5><div class="fwtags">' + a.tools.split(",").map(function (t) { return '<span>' + esc(t.trim()) + '</span>'; }).join("") + '</div>';
+    openDrawer(); bindClicks();
+  }
+
+  function openTool(name) {
+    var t = toolByName(name); if (!t) return;
+    var stTxt = t.state === "run" ? "in use" : t.state === "ok" ? "ready" : "standby";
+    $("#drawerBody").innerHTML =
+      '<button class="x" data-x>&times;</button>' +
+      '<span style="font-family:JetBrains Mono;color:var(--gold);font-size:11px;letter-spacing:.16em">[ TOOL &middot; ' + esc(t.cat) + ' ]</span>' +
+      '<h3>' + esc(t.name) + '</h3>' +
+      '<div class="meta"><span class="tag sev-low">' + esc(t.cat) + '</span><span class="tag sev-med">' + stTxt + '</span><span class="tag sev-low">' + t.calls.toLocaleString() + ' calls</span><span class="tag" style="border:1px solid rgba(63,185,132,.4);color:#3FB984">typed schema</span></div>' +
+      '<h5>What it does</h5><p>' + esc(t.desc) + '</p>' +
+      '<h5>Typed schema</h5><div class="code" style="white-space:pre">' + esc(t.schema) + '</div>' +
+      '<h5>Recent invocations</h5><div class="code" style="white-space:pre">' +
+      [["09:14:08", "agent.recon", "ok"], ["09:18:31", "agent.cloud", "ok"], ["09:24:42", "validator", "ok"]].map(function (r) {
+        return "<span class='c'>[" + r[0] + "]</span> caller=<span class='gd'>" + r[1] + "</span> tool=<span class='gd'>" + esc(t.name) + "</span> <span class='c'>sig=" + shortHash(t.name + r[0]) + "</span> <span class='ok'>" + r[2] + "</span>";
+      }).join("\n") + '</div>' +
+      '<h5>Guardrails</h5><ul class="feature-list"><li>Mediated through a typed schema, every call validated.</li><li>Scope bound to the active engagement authorization.</li><li>Rate and concurrency capped by engagement rules.</li><li>Sandboxed and reversible where the action mutates state.</li></ul>';
+    openDrawer(); bindClicks();
   }
 
   function vFindings() {
@@ -1097,7 +1249,7 @@
       ? [["Roster sync", "consented targets loaded"], ["Pretext build", "narrative generated"], ["Channel send", "lures dispatched"], ["Narrative replan", "escalation arbitrated"], ["Engagement scoring", "click, report, credential"], ["Report", "human risk index sealed"]]
       : [["Reconnaissance", "mapping connected scope"], ["Enumeration", "services and identities"], ["Exploitation", "candidate vulnerabilities"], ["Validation", "deterministic sandbox replay"], ["Lateral movement", "pivot across the stack"], ["Privilege escalation", "path to crown jewels"], ["Impact and exfil sim", "prove reach, no loss"], ["Compliance and report", "map and seal evidence"]];
 
-    var PANES = social ? socialPanes() : technicalPanes();
+    var PANES = social ? socialPanes(cid) : technicalPanes(cid);
 
     var ops = $("#ops");
     ops.innerHTML =
@@ -1219,7 +1371,7 @@
     };
   }
 
-  function technicalPanes() {
+  function technicalPanes(cid) {
     var P = function (prm, cm) { return '<span class="prm">' + prm + '</span> <span class="cm">' + cm + '</span>'; };
     var OK = function (s) { return '<span class="ok">' + s + '</span>'; };
     var W = function (s) { return '<span class="warn">' + s + '</span>'; };
@@ -1330,7 +1482,7 @@
     ];
   }
 
-  function socialPanes() {
+  function socialPanes(cid) {
     var P = function (prm, cm) { return '<span class="prm">' + prm + '</span> <span class="cm">' + cm + '</span>'; };
     var OK = function (s) { return '<span class="ok">' + s + '</span>'; };
     var W = function (s) { return '<span class="warn">' + s + '</span>'; };
@@ -1412,6 +1564,8 @@
     $$("tr.clk[data-f], .clk[data-f]").forEach(function (r) { r.onclick = function () { openFinding(r.getAttribute("data-f")); }; });
     $$("tr.clk[data-a]").forEach(function (r) { r.onclick = function () { openAsset(+r.getAttribute("data-a")); }; });
     $$("tr.clk[data-c]").forEach(function (r) { r.onclick = function () { location.hash = "#/campaign/" + r.getAttribute("data-c"); }; });
+    $$("tr.clk[data-ag]").forEach(function (r) { r.onclick = function () { openAgent(r.getAttribute("data-ag")); }; });
+    $$("tr.clk[data-tool]").forEach(function (r) { r.onclick = function () { openTool(r.getAttribute("data-tool")); }; });
     $$("[data-go]").forEach(function (b) { b.onclick = function () { location.hash = "#/" + b.getAttribute("data-go"); }; });
     $$("[data-export]").forEach(function (b) { b.onclick = function () { var n = b.getAttribute("data-export"); toast("Export ready", n + " generated from sealed evidence."); fakeDl(n); }; });
     $$("[data-toast]").forEach(function (b) { b.onclick = function () { var p = b.getAttribute("data-toast").split("|"); toast(p[0], p[1]); }; });
@@ -1462,11 +1616,6 @@
     setupAssistant();
     var tb = $("#tourBtn");
     if (tb) tb.onclick = function () { $("#userPop").classList.remove("open"); startTour(); };
-    try {
-      if (sessionStorage.getItem("cherubim_tour") !== "done" && window.innerWidth > 980) {
-        setTimeout(startTour, 700);
-      }
-    } catch (e) {}
   });
 
   /* ============================ GUIDED TOUR ============================ */
