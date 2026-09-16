@@ -6,7 +6,7 @@
   var USER = { name: "Operator", email: "", initials: "OP" };
 
   var PORTAL = {
-    base: "https://cherubim-api.cyber-leaders-nexus.workers.dev/v1",
+    base: "/api/v1",
     key: "",
     pollMs: 6000
   };
