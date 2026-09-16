@@ -1,12 +1,9 @@
 (function () {
   "use strict";
 
-  try {
-    if (sessionStorage.getItem("cb_s") !== "1") { location.replace("../login.html"); return; }
-  } catch (e) {}
-
-  var USER = { name: "Aaron Ang", email: "aaron@hesedemet.asia", initials: "AA" };
-  try { var u = JSON.parse(atob(sessionStorage.getItem("cb_u") || "") || "null"); if (u && u.name) USER = u; } catch (e) {}
+  // Cloudflare Access gates /console and /api. Identity comes from the Access
+  // session; there is no separate in-app login.
+  var USER = { name: "Operator", email: "", initials: "OP" };
 
   var PORTAL = {
     base: "https://cherubim-api.cyber-leaders-nexus.workers.dev/v1",
@@ -308,17 +305,33 @@
     }).catch(function () {});
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    var ini = USER.initials || (USER.name || "AA").split(" ").map(function (w) { return w[0]; }).join("").slice(0, 2).toUpperCase();
-    if ($("#uAv")) $("#uAv").textContent = ini;
+  function initialsFor(name, email) {
+    var s = name && name !== email ? name : (email || "").split("@")[0];
+    var parts = s.split(/[ ._-]+/).filter(Boolean);
+    var ini = parts.length > 1 ? parts[0][0] + parts[1][0] : s.slice(0, 2);
+    return (ini || "OP").toUpperCase();
+  }
+  function applyUser(o) {
+    var email = (o && o.email) || "";
+    var name = (o && o.name) || (email ? email.split("@")[0] : "Operator");
+    USER = { name: name, email: email, initials: initialsFor(name, email) };
+    if ($("#uAv")) $("#uAv").textContent = USER.initials;
     if ($("#uName")) $("#uName").textContent = USER.name;
-    if ($("#uMail")) $("#uMail").textContent = USER.email;
+    if ($("#uMail")) $("#uMail").textContent = USER.email || "operator";
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    applyUser(USER);
+    fetch("/cdn-cgi/access/get-identity", { credentials: "include" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && (j.email || j.name)) applyUser({ name: j.name, email: j.email }); })
+      .catch(function () {});
 
     paint();
     loadRecent();
 
     $("#scrim").onclick = closeDrawer;
-    var lo = $("#logout"); if (lo) lo.onclick = function () { try { sessionStorage.removeItem("cb_s"); sessionStorage.removeItem("cb_u"); } catch (e) {} location.href = "../login.html"; };
+    var lo = $("#logout"); if (lo) lo.onclick = function () { location.href = "/cdn-cgi/access/logout"; };
     var mb = $("#menuBtn"); if (mb) mb.onclick = function () { $("#rail").classList.toggle("open"); };
     $$(".rail-item[data-nav]").forEach(function (b) {
       b.onclick = function () {
