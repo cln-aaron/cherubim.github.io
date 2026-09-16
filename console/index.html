@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Console | Cherubim</title>
+<title>Console — Cherubim</title>
 <meta name="robots" content="noindex" />
-<meta name="theme-color" content="#06070a" />
+<meta name="theme-color" content="#0B0C0E" />
 <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,47 +13,54 @@
 <link rel="stylesheet" href="../assets/css/styles.css" />
 <link rel="stylesheet" href="../assets/css/app.css" />
 </head>
-<body class="app-body portal-body">
+<body>
+<div class="app">
+  <aside class="rail" id="rail">
+    <a class="rail-brand" href="../index.html">
+      <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+        <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 13c-4.2-3.4-9.4-4.8-15-4 1.9 2.6 2.7 4.7 2.7 7.6m12.3-.6c-5.4-2.3-10.1-2.1-14.2.6 2 2.1 2.9 4.2 3 7.1m11.2-1.3c-4.4-.4-8.1.7-11.1 3.3 1.3 1.8 2 3.8 2.1 6.2"/>
+          <path d="M25 13c4.2-3.4 9.4-4.8 15-4-1.9 2.6-2.7 4.7-2.7 7.6m-12.3-.6c5.4-2.3 10.1-2.1 14.2.6-2 2.1-2.9 4.2-3 7.1m-11.2-1.3c4.4-.4 8.1.7 11.1 3.3-1.3 1.8-2 3.8-2.1 6.2"/>
+          <path d="M24 9.5c2.8 2.2 6 3.3 9.6 3.5.2 9.4-3.6 17.4-9.6 22.2-6-4.8-9.8-12.8-9.6-22.2 3.6-.2 6.8-1.3 9.6-3.5z"/>
+        </g>
+        <path d="M24 16.5l1.7 4.8 4.8 1.7-4.8 1.7L24 29.5l-1.7-4.8-4.8-1.7 4.8-1.7z" fill="currentColor"/>
+      </svg>
+      <span>Cherubim</span>
+    </a>
 
-<header class="portal-top">
-  <a class="brand" href="../index.html">
-    <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
-      <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M23 13c-4.2-3.4-9.4-4.8-15-4 1.9 2.6 2.7 4.7 2.7 7.6m12.3-.6c-5.4-2.3-10.1-2.1-14.2.6 2 2.1 2.9 4.2 3 7.1m11.2-1.3c-4.4-.4-8.1.7-11.1 3.3 1.3 1.8 2 3.8 2.1 6.2"/>
-        <path d="M25 13c4.2-3.4 9.4-4.8 15-4-1.9 2.6-2.7 4.7-2.7 7.6m-12.3-.6c5.4-2.3 10.1-2.1 14.2.6-2 2.1-2.9 4.2-3 7.1m-11.2-1.3c4.4-.4 8.1.7 11.1 3.3-1.3 1.8-2 3.8-2.1 6.2"/>
-        <path d="M24 9.5c2.8 2.2 6 3.3 9.6 3.5.2 9.4-3.6 17.4-9.6 22.2-6-4.8-9.8-12.8-9.6-22.2 3.6-.2 6.8-1.3 9.6-3.5z"/>
-      </g>
-      <path d="M24 16.5l1.7 4.8 4.8 1.7-4.8 1.7L24 29.5l-1.7-4.8-4.8-1.7 4.8-1.7z" fill="currentColor"/>
-    </svg>
-    <span>Cherubim</span>
-  </a>
-  <span class="pill">Live pentest console</span>
-  <span class="mono hist-badge" id="histBadge"></span>
-  <div class="topbar-spacer"></div>
-  <div class="user" id="userMenu" title="Account">
-    <div class="avatar" id="uAv">AA</div>
-    <div class="user-meta"><b id="uName">Aaron Ang</b><span>Operator</span></div>
+    <div class="rail-sec">Operate</div>
+    <button class="rail-item on" data-nav="scan">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+      New scan
+    </button>
+    <button class="rail-item" data-nav="findings">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4v5c0 4.5-3 7.5-8 9-5-1.5-8-4.5-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>
+      Findings <span class="ct" id="navFindCt"></span>
+    </button>
+
+    <div class="rail-foot">
+      <div class="rail-avatar" id="uAv">AA</div>
+      <div class="rail-user"><b id="uName">Aaron Ang</b><span id="uMail">operator</span></div>
+      <button class="rail-signout" id="logout" title="Sign out" aria-label="Sign out">⏻</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="Menu">☰</button>
+      <h1>Live pentest</h1>
+      <span class="crumb" id="crumb"></span>
+      <div class="spacer"></div>
+      <span class="pill"><span class="g"></span> Engine online</span>
+    </header>
+
+    <div class="content" id="content"></div>
   </div>
-</header>
-
-<main class="portal-main" id="main"></main>
-
-<footer class="portal-foot">
-  <span>Cherubim by Hesed &amp; Emet &middot; authorized adversary simulation only</span>
-  <span>&copy; <span id="dyear"></span> Hesed &amp; Emet Advisory Pte Ltd</span>
-</footer>
-
-<!-- finding drawer -->
-<div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer"><div id="drawerBody"></div></aside>
-
-<!-- user popover -->
-<div class="popover" id="userPop">
-  <div class="pop-row"><b id="uName2">Aaron Ang</b><span id="uMail">aaron@hesedemet.asia</span></div>
-  <button class="pop-item" id="logout">Sign out</button>
 </div>
 
-<div class="toast-wrap" id="toasts"></div>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer"><div id="drawerBody"></div></aside>
+<div class="toasts" id="toasts"></div>
 
 <script src="../assets/js/portal.js"></script>
 </body>

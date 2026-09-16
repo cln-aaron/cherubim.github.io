@@ -1,13 +1,10 @@
 (function () {
   "use strict";
-
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Year
   var y = document.getElementById("year");
   if (y) y.textContent = new Date().getFullYear();
 
-  // Mobile nav
   var nav = document.getElementById("nav");
   var toggle = document.getElementById("navToggle");
   if (toggle && nav) {
@@ -16,138 +13,84 @@
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
     });
     nav.querySelectorAll(".nav-links a").forEach(function (a) {
-      a.addEventListener("click", function () {
-        nav.classList.remove("open");
-        toggle.setAttribute("aria-expanded", "false");
-      });
+      a.addEventListener("click", function () { nav.classList.remove("open"); toggle.setAttribute("aria-expanded", "false"); });
     });
   }
 
-  // Scroll progress bar
   var bar = document.getElementById("progress");
   if (bar) {
-    var tick = false;
+    var ticking = false;
     window.addEventListener("scroll", function () {
-      if (tick) return;
-      tick = true;
+      if (ticking) return;
+      ticking = true;
       requestAnimationFrame(function () {
         var h = document.documentElement;
-        var p = h.scrollTop / (h.scrollHeight - h.clientHeight || 1);
-        bar.style.width = (p * 100).toFixed(2) + "%";
-        tick = false;
+        bar.style.width = (h.scrollTop / (h.scrollHeight - h.clientHeight || 1) * 100).toFixed(2) + "%";
+        ticking = false;
       });
     }, { passive: true });
   }
 
-  // Cursor glow
-  var glow = document.getElementById("glow");
-  if (glow && !reduce && window.matchMedia("(pointer:fine)").matches) {
-    var gx = window.innerWidth / 2, gy = window.innerHeight / 2, cx = gx, cy = gy;
-    window.addEventListener("mousemove", function (e) { gx = e.clientX; gy = e.clientY; }, { passive: true });
-    (function loop() {
-      cx += (gx - cx) * 0.12;
-      cy += (gy - cy) * 0.12;
-      glow.style.transform = "translate(" + cx + "px," + cy + "px) translate(-50%,-50%)";
-      requestAnimationFrame(loop);
-    })();
-  } else if (glow) {
-    glow.style.display = "none";
-  }
-
-  // Kinetic hero reveal
-  var kinetic = document.querySelector(".kinetic");
-  if (kinetic) {
-    if (reduce) kinetic.classList.add("in");
-    else requestAnimationFrame(function () {
-      setTimeout(function () { kinetic.classList.add("in"); }, 120);
-    });
-  }
-
-  // Count-up stats
-  document.querySelectorAll("[data-count]").forEach(function (el) {
+  function countUp(el) {
     var target = parseInt(el.textContent, 10);
     if (reduce || isNaN(target)) return;
     el.textContent = "0";
-    var seen = false;
-    var ob = new IntersectionObserver(function (en) {
-      en.forEach(function (e) {
-        if (!e.isIntersecting || seen) return;
-        seen = true;
-        var n = 0, step = Math.max(1, Math.ceil(target / 26));
-        var t = setInterval(function () {
-          n += step;
-          if (n >= target) { n = target; clearInterval(t); }
-          el.textContent = String(n);
-        }, 32);
-      });
-    }, { threshold: 1 });
-    ob.observe(el);
-  });
-
-  // Scroll reveal
-  var targets = document.querySelectorAll(
-    ".sec-head, .card, .split-copy, .split-visual, .channel, .compare-col, .arch-item, .outcomes div, .faq details, .cta-inner, .strip-inner, .orchestration"
-  );
-  targets.forEach(function (el) { el.classList.add("reveal"); });
-
-  if ("IntersectionObserver" in window && !reduce) {
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) {
-        if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
-      });
-    }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
-    targets.forEach(function (el) { io.observe(el); });
-  } else {
-    targets.forEach(function (el) { el.classList.add("in"); });
+    var n = 0, step = Math.max(1, Math.ceil(target / 26));
+    var t = setInterval(function () {
+      n += step;
+      if (n >= target) { n = target; clearInterval(t); }
+      el.textContent = String(n);
+    }, 34);
   }
 
-  // Product showcase animation
+  document.querySelectorAll("[data-count]").forEach(function (el) {
+    if (reduce) return;
+    var seen = false;
+    new IntersectionObserver(function (ents, obs) {
+      ents.forEach(function (e) { if (e.isIntersecting && !seen) { seen = true; countUp(el); obs.disconnect(); } });
+    }, { threshold: 1 }).observe(el);
+  });
+
+  var revealables = document.querySelectorAll(".reveal");
+  if ("IntersectionObserver" in window && !reduce) {
+    var io = new IntersectionObserver(function (ents) {
+      ents.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, { threshold: 0.15, rootMargin: "0px 0px -6% 0px" });
+    revealables.forEach(function (el) { io.observe(el); });
+  } else {
+    revealables.forEach(function (el) { el.classList.add("in"); });
+  }
+
   var feed = document.getElementById("showFeed");
   if (feed) {
     var lines = [
       "recon mapped 12 origins, 47 subdomains",
-      "phase 07 access control, testing IDOR",
-      "verified IDOR on /api/orders/{id} (CVSS 9.1)",
-      "phase 08 injection, boolean-blind SQLi",
-      "sandbox reproduced SQLi, proof captured",
-      "phase 09 XSS, reflected in attribute context",
-      "verified reflected XSS (CWE-79)",
-      "phase 14 API testing, GraphQL introspection",
-      "report assembled, 6 findings all proven"
+      "phase 07 access control — testing IDOR",
+      "IDOR proven on /api/orders/{id} · CVSS 9.1",
+      "phase 08 injection — boolean-blind SQLi",
+      "SQLi reproduced in sandbox, proof captured",
+      "phase 09 XSS — reflected in attribute context",
+      "reflected XSS proven · CWE-79",
+      "phase 14 API — GraphQL introspection open",
+      "report sealed — 6 findings, all reproduced"
     ];
-    var fi = 0;
-    function feedAdd() {
-      var t = new Date(Date.now() - (6 - (fi % 6)) * 3000)
-        .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    var i = 0;
+    function add() {
+      var t = new Date(Date.now() - (6 - (i % 6)) * 3000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
       var d = document.createElement("div");
-      d.innerHTML = "<span class='t'>" + t + "</span> " + lines[fi % lines.length];
-      feed.insertBefore(d, feed.firstChild);
-      while (feed.children.length > 7) feed.removeChild(feed.lastChild);
-      fi++;
+      d.innerHTML = "<span class='t'>" + t + "</span> " + lines[i % lines.length];
+      feed.appendChild(d);
+      while (feed.children.length > 6) feed.removeChild(feed.children[1]);
+      i++;
     }
-    for (var k = 0; k < 6; k++) feedAdd();
-    if (!reduce) setInterval(feedAdd, 2600);
+    for (var k = 0; k < 5; k++) add();
+    if (!reduce) setInterval(add, 2600);
 
-    var mocks = document.querySelectorAll("[data-mock]");
-    var ran = false;
-    function runCount() {
-      if (ran) return; ran = true;
-      mocks.forEach(function (el) {
-        var target = parseInt(el.textContent, 10); if (isNaN(target)) return;
-        if (reduce) return;
-        var n = 0, step = Math.max(1, Math.ceil(target / 24));
-        el.textContent = "0";
-        var t = setInterval(function () {
-          n += step; if (n >= target) { n = target; clearInterval(t); }
-          el.textContent = String(n);
-        }, 34);
-      });
-    }
-    if ("IntersectionObserver" in window) {
-      var so = new IntersectionObserver(function (en) {
-        en.forEach(function (e) { if (e.isIntersecting) { runCount(); so.disconnect(); } });
-      }, { threshold: 0.3 });
-      so.observe(feed);
-    } else { runCount(); }
+    document.querySelectorAll("[data-mock]").forEach(function (el) {
+      var seen = false;
+      new IntersectionObserver(function (ents, obs) {
+        ents.forEach(function (e) { if (e.isIntersecting && !seen) { seen = true; countUp(el); obs.disconnect(); } });
+      }, { threshold: 0.4 }).observe(el);
+    });
   }
 })();
