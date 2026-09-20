@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Cherubim — Autonomous Penetration Testing, Proven by Exploit</title>
-<meta name="description" content="Cherubim runs a full penetration test against your web apps and APIs, then proves every finding with a working exploit. 22-phase methodology, live observability, verified findings with CVSS, CWE and remediation. Built for security teams who are done triaging scanner noise." />
+<meta name="description" content="Cherubim runs a full penetration test against your web apps and APIs, then proves every finding with a working exploit. A six-stage engagement, live observability, verified findings with CVSS, CWE and remediation. Built for security teams who are done triaging scanner noise." />
 <meta name="keywords" content="autonomous penetration testing, exploit validation, application security testing, IDOR, SQL injection, SSRF, API security, CI/CD security, continuous security validation" />
 <meta name="author" content="Hesed & Emet Advisory" />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
@@ -19,14 +19,14 @@
 <meta property="og:image" content="https://cherubim.hesedemet.asia/assets/img/og.svg" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Cherubim — Autonomous Penetration Testing, Proven by Exploit" />
-<meta name="twitter:description" content="Every finding proven by a working exploit. 22-phase methodology, live observability, verified results." />
+<meta name="twitter:description" content="Every finding proven by a working exploit. A six-stage engagement, live observability, verified results." />
 <meta name="twitter:image" content="https://cherubim.hesedemet.asia/assets/img/og.svg" />
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
 <link rel="sitemap" type="application/xml" href="sitemap.xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="assets/css/styles.css?v=3" />
+<link rel="stylesheet" href="assets/css/styles.css?v=4" />
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -45,10 +45,10 @@
       "operatingSystem": "Cloud",
       "url": "https://cherubim.hesedemet.asia/",
       "publisher": { "@id": "https://cherubim.hesedemet.asia/#org" },
-      "description": "Cherubim is an autonomous penetration testing platform. It runs a 22-phase engagement against web applications and APIs, reproduces each vulnerability with a working exploit in an isolated sandbox, and returns verified findings with CVSS, CWE, OWASP mapping and remediation. It streams the engagement live and integrates with CI/CD and GitHub.",
+      "description": "Cherubim is an autonomous penetration testing platform. It runs a six-stage engagement (twenty-two classes of test) against web applications and APIs, reproduces each vulnerability with a working exploit in an isolated sandbox, and returns verified findings with CVSS, CWE, OWASP mapping and remediation. It streams the engagement live and integrates with CI/CD and GitHub.",
       "featureList": [
         "Exploit-validated findings, no unproven results",
-        "22-phase testing methodology",
+        "Six-stage engagement, twenty-two classes of test",
         "Live engagement observability",
         "CI/CD and GitHub severity gating",
         "REST API and branded reporting"
@@ -59,7 +59,7 @@
       "mainEntity": [
         { "@type": "Question", "name": "How is this different from a vulnerability scanner?", "acceptedAnswer": { "@type": "Answer", "text": "A scanner flags patterns and hands you a list to triage. Cherubim attempts the exploit and only reports what it can reproduce, with the request and response that proved it. If it cannot land the exploit, it does not become a finding." } },
         { "@type": "Question", "name": "Is it safe to run against production?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. It uses non-destructive payloads and respects rate limits, so it is designed to run against live systems without causing an outage or corrupting data." } },
-        { "@type": "Question", "name": "How long does an engagement take?", "acceptedAnswer": { "@type": "Answer", "text": "A single target typically completes in 10 to 30 minutes across all 22 phases. Wildcard mode enumerates and tests subdomains, so it runs longer depending on the attack surface it discovers." } },
+        { "@type": "Question", "name": "How long does an engagement take?", "acceptedAnswer": { "@type": "Answer", "text": "It depends on the target. Cherubim is not a fixed-length scan. It reasons, adapts and keeps probing like a human pentester, so a small application can finish in under an hour while a large or interesting attack surface can take several hours up to a full day as it pursues what it finds. It stops when it has exhausted the paths worth trying, not on a timer." } },
         { "@type": "Question", "name": "Can it run in a pipeline?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. A REST API, a GitHub app and CI/CD hooks let you gate a merge or a release on verified findings above a severity threshold you set, so the build only breaks on exploitable issues." } }
       ]
     }
@@ -107,14 +107,14 @@
   <div class="wrap hero-inner">
     <div class="hero-copy">
       <span class="hero-badge"><span class="dot"></span> Autonomous offensive testing</span>
-      <h1>Stop triaging maybes.<br>Ship fixes for what's <em>exploitable</em>.</h1>
-      <p class="lede">Cherubim runs a full penetration test against your web apps and APIs, then proves every finding by landing the exploit in a sandbox. You get the request that worked, a CVSS score, and the fix. Nothing you have to reproduce yourself.</p>
+      <h1>We don't flag risks.<br>We <em>prove</em> them.</h1>
+      <p class="lede">Cherubim runs a full penetration test across your apps and APIs, lands the exploit for every issue it reports, and hands you the request that worked, the impact, and the fix. If it can't reproduce it, you never see it.</p>
       <div class="hero-cta">
         <a class="btn" href="console/index.html">Run a live engagement <span class="arw">→</span></a>
         <a class="btn btn-ghost" href="#how">See how it works</a>
       </div>
       <div class="hero-sub">
-        <span>22-phase methodology</span>
+        <span>Six-stage engagement</span>
         <span>Exploit-validated findings</span>
         <span>Safe against production</span>
       </div>
@@ -139,9 +139,9 @@
 
 <section class="statband">
   <div class="wrap statband-inner">
-    <div class="stat-c"><b data-count>22</b><span>phases per engagement, recon through reporting</span></div>
+    <div class="stat-c"><b data-count>6</b><span>engagement stages bundling 22 classes of test</span></div>
     <div class="stat-c"><b data-count>0</b><span>unproven findings; if it can't be reproduced it isn't reported</span></div>
-    <div class="stat-c"><b>10&ndash;30<span class="u">min</span></b><span>typical single-target engagement</span></div>
+    <div class="stat-c"><b>Hours</b><span>to a full day per target, reasoning and digging like an operator, not a drive-by scan</span></div>
     <div class="stat-c"><b>100<span class="u">%</span></b><span>of findings carry a working proof of concept</span></div>
   </div>
 </section>
@@ -155,7 +155,7 @@
     </div>
     <div class="steps">
       <div class="step reveal"><span class="n">1</span><h3>Set the target</h3><p>A URL, a hostname, or a wildcard for a whole domain. Pick single-target or subdomain discovery.</p></div>
-      <div class="step reveal"><span class="n">2</span><h3>Launch</h3><p>The engagement starts immediately and works through all 22 phases, chaining weak signals into real impact.</p></div>
+      <div class="step reveal"><span class="n">2</span><h3>Launch</h3><p>The engagement starts immediately and works through all six stages, chaining weak signals into real impact.</p></div>
       <div class="step reveal"><span class="n">3</span><h3>Watch it work</h3><p>Follow tool calls, agent reasoning, HTTP traffic and phase transitions live. Nothing runs in a black box.</p></div>
       <div class="step reveal"><span class="n">4</span><h3>Act on proof</h3><p>Each finding lands with the exploit that worked, a CVSS score, CWE and OWASP mapping, and the remediation.</p></div>
       <div class="step reveal"><span class="n">5</span><h3>Hand it over</h3><p>Export a report or send a signed link to the engineer who owns the fix. No rewriting for a second audience.</p></div>
@@ -194,33 +194,41 @@ HTTP/1.1 200 OK  { "order": 48213, "customer": "tenant-A", ... }
 <section class="section" id="method">
   <div class="wrap">
     <div class="sec-head">
-      <span class="eyebrow">Methodology</span>
-      <h2>Twenty-two phases, run end to end.</h2>
-      <p class="sec-sub">A real pentest is not a single scan. Cherubim works the application, its APIs and the infrastructure behind it, chaining findings across phases the way an operator pivots from a foothold to impact.</p>
+      <span class="eyebrow">The engagement</span>
+      <h2>Six stages. One continuous kill chain.</h2>
+      <p class="sec-sub">Cherubim doesn't run a checklist and stop. It moves through six stages, bundling twenty-two classes of test, and carries what it learns in one stage into the next, the way an operator turns a foothold into real impact.</p>
     </div>
-    <div class="matrix">
-      <div class="mx"><span class="n mono">01</span><b>Reconnaissance</b><em>Scope intake and surface mapping</em></div>
-      <div class="mx"><span class="n mono">02</span><b>Subdomain discovery</b><em>Asset and origin enumeration</em></div>
-      <div class="mx"><span class="n mono">03</span><b>Fingerprinting</b><em>Stack, framework and version</em></div>
-      <div class="mx"><span class="n mono">04</span><b>Transport security</b><em>TLS and channel hardening</em></div>
-      <div class="mx"><span class="n mono">05</span><b>Authentication</b><em>Login, reset, credential flows</em></div>
-      <div class="mx"><span class="n mono">06</span><b>Session management</b><em>Tokens, cookies, fixation</em></div>
-      <div class="mx"><span class="n mono">07</span><b>Access control</b><em>IDOR and authorization</em></div>
-      <div class="mx"><span class="n mono">08</span><b>Injection</b><em>SQL and NoSQL classes</em></div>
-      <div class="mx"><span class="n mono">09</span><b>Cross-site scripting</b><em>Reflected, stored, DOM</em></div>
-      <div class="mx"><span class="n mono">10</span><b>SSRF</b><em>Reach to internal services</em></div>
-      <div class="mx"><span class="n mono">11</span><b>Command injection</b><em>Code and OS execution</em></div>
-      <div class="mx"><span class="n mono">12</span><b>Upload &amp; traversal</b><em>File abuse, path traversal</em></div>
-      <div class="mx"><span class="n mono">13</span><b>XXE &amp; deserialization</b><em>Parser and object injection</em></div>
-      <div class="mx"><span class="n mono">14</span><b>API security</b><em>REST and GraphQL surfaces</em></div>
-      <div class="mx"><span class="n mono">15</span><b>Business logic</b><em>Workflow and state abuse</em></div>
-      <div class="mx"><span class="n mono">16</span><b>Rate limiting</b><em>Abuse resistance checks</em></div>
-      <div class="mx"><span class="n mono">17</span><b>Info disclosure</b><em>Secrets, keys, leakage</em></div>
-      <div class="mx"><span class="n mono">18</span><b>Cloud &amp; infra</b><em>Metadata, storage, config</em></div>
-      <div class="mx"><span class="n mono">19</span><b>Headers &amp; CORS</b><em>Policy and cross-origin</em></div>
-      <div class="mx"><span class="n mono">20</span><b>Client-side</b><em>DOM sinks, front-end</em></div>
-      <div class="mx"><span class="n mono">21</span><b>Exploit validation</b><em>Sandbox reproduction</em></div>
-      <div class="mx"><span class="n mono">22</span><b>Reporting</b><em>Severity and remediation</em></div>
+    <div class="stages">
+      <article class="stage reveal">
+        <div class="stage-h"><span class="stage-n mono">01</span><h3>Map</h3><span class="stage-c mono">4 checks</span></div>
+        <p>Discover everything reachable before touching it.</p>
+        <div class="stage-tags"><span>Reconnaissance</span><span>Subdomain discovery</span><span>Fingerprinting</span><span>Transport security</span></div>
+      </article>
+      <article class="stage reveal">
+        <div class="stage-h"><span class="stage-n mono">02</span><h3>Identity &amp; access</h3><span class="stage-c mono">3 checks</span></div>
+        <p>Get in, and reach what you shouldn't.</p>
+        <div class="stage-tags"><span>Authentication</span><span>Session management</span><span>Access control &amp; IDOR</span></div>
+      </article>
+      <article class="stage reveal">
+        <div class="stage-h"><span class="stage-n mono">03</span><h3>Injection</h3><span class="stage-c mono">6 checks</span></div>
+        <p>Turn untrusted input into execution and reach.</p>
+        <div class="stage-tags"><span>SQL &amp; NoSQL</span><span>Cross-site scripting</span><span>SSRF</span><span>Command injection</span><span>Upload &amp; traversal</span><span>XXE &amp; deserialization</span></div>
+      </article>
+      <article class="stage reveal">
+        <div class="stage-h"><span class="stage-n mono">04</span><h3>Logic &amp; APIs</h3><span class="stage-c mono">3 checks</span></div>
+        <p>Break the rules the application assumes you'll follow.</p>
+        <div class="stage-tags"><span>API security</span><span>Business logic</span><span>Rate limiting</span></div>
+      </article>
+      <article class="stage reveal">
+        <div class="stage-h"><span class="stage-n mono">05</span><h3>Exposure</h3><span class="stage-c mono">4 checks</span></div>
+        <p>Find what the stack leaks about itself.</p>
+        <div class="stage-tags"><span>Information disclosure</span><span>Cloud &amp; infrastructure</span><span>Headers &amp; CORS</span><span>Client-side</span></div>
+      </article>
+      <article class="stage reveal">
+        <div class="stage-h"><span class="stage-n mono">06</span><h3>Prove &amp; report</h3><span class="stage-c mono">2 checks</span></div>
+        <p>Reproduce every candidate, then write it up.</p>
+        <div class="stage-tags"><span>Exploit validation</span><span>Reporting &amp; remediation</span></div>
+      </article>
     </div>
   </div>
 </section>
@@ -345,7 +353,7 @@ HTTP/1.1 200 OK  { "order": 48213, "customer": "tenant-A", ... }
       </details>
       <details>
         <summary>How long does an engagement take?</summary>
-        <p>A single target usually completes in 10 to 30 minutes across all 22 phases. Wildcard mode enumerates and tests subdomains, so it runs longer depending on the surface it finds.</p>
+        <p>It depends on the target, and that's the point. Cherubim isn't a fixed-length scan. It reasons, adapts, and keeps probing the way a human pentester would, chasing whatever it finds. A small app might wrap in under an hour, while a large or interesting attack surface can run for several hours up to a full day as it digs deeper. It stops when it has exhausted the paths worth trying, not when a timer runs out.</p>
       </details>
       <details>
         <summary>Can it run in a pipeline?</summary>
@@ -394,6 +402,6 @@ HTTP/1.1 200 OK  { "order": 48213, "customer": "tenant-A", ... }
   </div>
 </footer>
 
-<script src="assets/js/main.js?v=3"></script>
+<script src="assets/js/main.js?v=4"></script>
 </body>
 </html>

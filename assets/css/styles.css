@@ -283,3 +283,17 @@ img,svg{display:block;max-width:100%}
   .stat-c{border-right:0}
   .mock-metrics{grid-template-columns:repeat(2,1fr)}
 }
+
+/* Engagement stages (bundled methodology) */
+.stages{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.stage{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--r);padding:24px;transition:border-color .2s,transform .2s}
+.stage:hover{border-color:var(--line-2);transform:translateY(-2px)}
+.stage-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.stage-n{font-size:12px;color:var(--accent);border:1px solid var(--line-2);border-radius:6px;padding:3px 8px}
+.stage-h h3{font-size:18px;margin:0}
+.stage-c{margin-left:auto;font-size:11px;color:var(--faint)}
+.stage p{color:var(--muted);font-size:14px;margin-bottom:14px}
+.stage-tags{display:flex;flex-wrap:wrap;gap:6px}
+.stage-tags span{font-family:var(--mono);font-size:11px;color:var(--text);background:var(--panel-2);border:1px solid var(--line-soft);border-radius:20px;padding:4px 10px}
+@media(max-width:1000px){.stages{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.stages{grid-template-columns:1fr}}
