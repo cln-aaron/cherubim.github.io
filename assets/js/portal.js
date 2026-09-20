@@ -56,6 +56,7 @@
     return api(q);
   }
   function listScans() { return api("/scanlist"); }
+  function deleteScan(id) { return api("/scanlist?id=" + encodeURIComponent(id), { method: "DELETE" }); }
   function listSchedules() { return api("/schedules"); }
   function createSchedule(s) { return api("/schedules", { method: "POST", body: s }); }
   function deleteSchedule(id) { return api("/schedules?id=" + encodeURIComponent(id), { method: "DELETE" }); }
@@ -226,7 +227,7 @@
     if (!state.scans.length) {
       rows = '<div class="fempty">No scans recorded yet. Launch one from New scan and it will appear here.</div>';
     } else {
-      rows = '<table class="ftable"><thead><tr><th>Target</th><th>Mode</th><th>Status</th><th>Findings</th><th>Started</th></tr></thead><tbody>' +
+      rows = '<table class="ftable"><thead><tr><th>Target</th><th>Mode</th><th>Status</th><th>Findings</th><th>Started</th><th></th></tr></thead><tbody>' +
         state.scans.map(function (s) {
           var st = s.status || "—", stcls = st === "completed" ? "ok" : (st === "running" || st === "queued" ? "run" : "");
           var total = s.counts ? SEV.reduce(function (a, k) { return a + (s.counts[k] || 0); }, 0) : null;
@@ -235,7 +236,8 @@
             '<td class="fmono">' + esc(s.mode || "single") + '</td>' +
             '<td>' + (stcls ? '<span class="stbadge ' + stcls + '" style="font-size:10px;padding:3px 9px">' + esc(st) + '</span>' : '<span class="fmono">' + esc(st) + '</span>') + '</td>' +
             '<td class="fmono">' + (total == null ? "—" : total) + '</td>' +
-            '<td class="fmono">' + when(s.createdAt || s.started_at) + '</td></tr>';
+            '<td class="fmono">' + when(s.createdAt || s.started_at) + '</td>' +
+            '<td class="row-act"><button class="dots" data-scanmenu="' + esc(s.id) + '" title="More" aria-label="More">&#8943;</button></td></tr>';
         }).join("") + '</tbody></table>';
     }
     return '<div class="fsection-head"><h3>Scans</h3><span class="cnt">' + state.scans.length + ' recorded</span></div>' +
@@ -308,9 +310,86 @@
     $$(".ftable tbody tr[data-fid]").forEach(function (r) { r.onclick = function () { openFinding(r.getAttribute("data-fid")); }; });
     $$(".chip[data-filter]").forEach(function (c) { c.onclick = function () { state.filter = c.getAttribute("data-filter"); refreshDynamic(); }; });
     $$(".ftable tbody tr[data-scan]").forEach(function (r) { r.onclick = function () { openScan(r.getAttribute("data-scan")); }; });
+    $$("[data-scanmenu]").forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); openRowMenu(b.getAttribute("data-scanmenu"), b); }; });
     var sf = $("#schedFormEl"); if (sf) sf.onsubmit = function (e) { e.preventDefault(); submitSchedule(); };
     $$("[data-delsched]").forEach(function (b) { b.onclick = function () { removeSchedule(b.getAttribute("data-delsched")); }; });
     try { var lt = localStorage.getItem("cb_last_target"), ti = $("#scanTarget"); if (lt && ti && !ti.value) ti.value = lt; } catch (e) {}
+  }
+
+  /* ---------- row menu: download report / delete ---------- */
+  function closeRowMenu() { var m = $("#rowMenu"); if (m) { m.classList.remove("open"); m.innerHTML = ""; } }
+  function openRowMenu(id, btn) {
+    var m = $("#rowMenu"); if (!m) return;
+    var scan = state.scans.filter(function (s) { return s.id === id; })[0] || { id: id };
+    m.innerHTML =
+      '<button class="rm-item" data-act="report">Download report</button>' +
+      '<button class="rm-item danger" data-act="delete">Delete scan</button>';
+    var r = btn.getBoundingClientRect();
+    m.style.top = (r.bottom + 6) + "px";
+    m.style.left = Math.max(12, r.right - 168) + "px";
+    m.classList.add("open");
+    $(".rm-item[data-act='report']", m).onclick = function () { closeRowMenu(); downloadReport(scan); };
+    $(".rm-item[data-act='delete']", m).onclick = function () { closeRowMenu(); doDeleteScan(scan); };
+  }
+
+  function doDeleteScan(scan) {
+    if (!window.confirm("Remove this scan from the list? The engagement record is deleted from your console.")) return;
+    deleteScan(scan.id).then(function () {
+      state.scans = state.scans.filter(function (s) { return s.id !== scan.id; });
+      render();
+      var ct = $("#navScanCt"); if (ct) ct.textContent = state.scans.length ? String(state.scans.length) : "";
+      toast("Scan removed", "", "ok");
+    }).catch(function (err) { toast("Could not delete", String(err.message || err), "err"); });
+  }
+
+  function downloadReport(scan) {
+    toast("Building report", "Compiling findings for " + scan.target + "…");
+    Promise.all([scanStatus(scan.id), listFindings(scan.id, 200)]).then(function (res) {
+      var st = res[0].scan || scan, cn = res[0].counts || {}, finds = res[1].findings || [];
+      var html = buildReportHtml(st, cn, finds);
+      var name = "cherubim-report-" + String(st.target || "scan").replace(/^https?:\/\//, "").replace(/[^a-z0-9.-]+/gi, "-").replace(/^-+|-+$/g, "") + "-" + new Date().toISOString().slice(0, 10) + ".html";
+      var blob = new Blob([html], { type: "text/html" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      toast("Report ready", finds.length + " findings · open the file and print to PDF if needed.", "ok");
+    }).catch(function (err) { toast("Could not build report", String(err.message || err), "err"); });
+  }
+
+  function buildReportHtml(scan, counts, finds) {
+    var order = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+    var sorted = finds.slice().sort(function (a, b) { return (order[(a.severity || "info").toLowerCase()] || 9) - (order[(b.severity || "info").toLowerCase()] || 9); });
+    var sevRow = SEV.map(function (s) { return '<span class="pill ' + s + '">' + SEV_LABEL[s] + ' ' + (counts[s] || 0) + '</span>'; }).join(" ");
+    var body = sorted.length ? sorted.map(function (f) {
+      var s = (f.severity || "info").toLowerCase(), ev = f.evidence || {};
+      return '<section class="f"><div class="fh"><span class="sev ' + s + '">' + SEV_LABEL[s] + '</span>' +
+        '<h3>' + esc(cleanTitle(f.title)) + '</h3></div>' +
+        '<div class="tags">' + (f.cvss != null ? '<span>CVSS ' + esc(f.cvss) + '</span>' : "") + (ev.cwe_id ? '<span>' + esc(ev.cwe_id) + '</span>' : "") + (ev.owasp ? '<span>' + esc(ev.owasp) + '</span>' : "") + '<span>Phase ' + esc(f.phase || "?") + '</span></div>' +
+        '<h4>Evidence &amp; proof of concept</h4><pre>' + esc(f.description || "") + '</pre>' +
+        (f.remediation || ev.fix ? '<h4>Remediation</h4><p>' + esc(f.remediation || ev.fix) + '</p>' : "") + '</section>';
+    }).join("") : '<p class="none">No findings were reproduced for this engagement.</p>';
+    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Cherubim report — ' + esc(scan.target || "") + '</title>' +
+      '<style>*{box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#15181d;max-width:840px;margin:0 auto;padding:48px 32px;line-height:1.55}' +
+      'h1{font-size:26px;margin:0 0 4px}.sub{color:#667085;font-family:ui-monospace,Menlo,monospace;font-size:13px}' +
+      '.summary{margin:22px 0 30px;padding:18px;border:1px solid #e6e8ec;border-radius:10px}' +
+      '.pill{display:inline-block;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;margin:3px 4px 3px 0;border:1px solid #e0e0e0}' +
+      '.pill.critical{background:#fdecec;color:#c0261d;border-color:#f4bcbc}.pill.high{background:#fff0e6;color:#c25a12;border-color:#f6cfae}' +
+      '.pill.medium{background:#fff8e1;color:#9a7400;border-color:#f0dda0}.pill.low{background:#eaf2fe;color:#245ec0;border-color:#c3d8f6}.pill.info{background:#f1f3f5;color:#555}' +
+      '.f{border-top:1px solid #e6e8ec;padding:22px 0}.fh{display:flex;align-items:center;gap:10px}.fh h3{font-size:17px;margin:0}' +
+      '.sev{font-size:11px;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:5px;color:#fff}' +
+      '.sev.critical{background:#e0342a}.sev.high{background:#e8720f}.sev.medium{background:#caa000;color:#1a1a1a}.sev.low{background:#2f6fd6}.sev.info{background:#8a94a6}' +
+      '.tags{margin:8px 0}.tags span{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#667085;border:1px solid #e6e8ec;border-radius:5px;padding:2px 7px;margin-right:6px}' +
+      'h4{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#98a2b3;margin:16px 0 6px}' +
+      'pre{background:#0c0e12;color:#e6e8ec;padding:14px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap;word-break:break-word}' +
+      '.none{color:#667085}footer{margin-top:40px;border-top:1px solid #e6e8ec;padding-top:16px;color:#98a2b3;font-size:12px}' +
+      '@media print{body{padding:0}}</style></head><body>' +
+      '<h1>Cherubim penetration test report</h1>' +
+      '<div class="sub">' + esc(scan.target || "") + ' · ' + esc(scan.mode || "single") + ' · ' + (scan.status || "") + ' · generated ' + new Date().toLocaleString() + '</div>' +
+      '<div class="summary"><b>Severity summary</b><div style="margin-top:10px">' + sevRow + '</div></div>' +
+      '<h2 style="font-size:18px">Findings</h2>' + body +
+      '<footer>Cherubim by Hesed &amp; Emet · exploit-validated findings · authorized security testing only</footer>' +
+      '</body></html>';
   }
 
   /* ---------- finding drawer ---------- */
@@ -526,6 +605,8 @@
     loadSchedules();
 
     $("#scrim").onclick = closeDrawer;
+    document.addEventListener("click", function () { closeRowMenu(); });
+    window.addEventListener("scroll", function () { closeRowMenu(); }, true);
     var lo = $("#logout"); if (lo) lo.onclick = function () { location.href = "/cdn-cgi/access/logout"; };
     var mb = $("#menuBtn"); if (mb) mb.onclick = function () { $("#rail").classList.toggle("open"); };
     $$(".rail-item[data-nav]").forEach(function (b) { b.onclick = function () { setView(b.getAttribute("data-nav")); }; });

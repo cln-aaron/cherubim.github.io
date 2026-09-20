@@ -257,3 +257,15 @@
 .cur-empty{background:var(--panel);border:1px dashed var(--line);border-radius:var(--r);padding:52px 30px;text-align:center;color:var(--muted)}
 .cur-empty b{display:block;color:var(--paper);font-size:16px;font-weight:600;margin-bottom:6px}
 .cur-empty span{font-size:13px}
+
+/* scan row actions + menu */
+.row-act{text-align:right;width:44px}
+.dots{background:none;border:0;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;padding:4px 8px;border-radius:6px;transition:.15s}
+.dots:hover{color:var(--text);background:rgba(255,255,255,.06)}
+.row-menu{position:fixed;z-index:120;min-width:168px;background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  padding:6px;box-shadow:0 18px 44px -18px rgba(0,0,0,.8);display:none;flex-direction:column;gap:2px}
+.row-menu.open{display:flex}
+.rm-item{background:none;border:0;text-align:left;color:var(--text);font:inherit;font-size:13px;padding:9px 11px;border-radius:6px;cursor:pointer;transition:.12s}
+.rm-item:hover{background:rgba(255,255,255,.05)}
+.rm-item.danger{color:var(--accent-2)}
+.rm-item.danger:hover{background:rgba(252,43,50,.12)}
