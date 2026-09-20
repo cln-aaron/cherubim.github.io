@@ -355,14 +355,44 @@
       var st = res[0].scan || scan, cn = res[0].counts || {}, finds = res[1].findings || [];
       var html = kind === "executive" ? buildExecutiveReport(st, cn, finds) : buildTechnicalReport(st, cn, finds);
       var base = String(st.target || "scan").replace(/^https?:\/\//, "").replace(/[^a-z0-9.-]+/gi, "-").replace(/^-+|-+$/g, "");
-      var name = "cherubim-" + kind + "-report-" + base + "-" + new Date().toISOString().slice(0, 10) + ".html";
-      var blob = new Blob([html], { type: "text/html" });
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(blob); a.download = name;
-      document.body.appendChild(a); a.click();
-      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-      toast(label + " report ready", finds.length + " findings · open the file and print to PDF if needed.", "ok");
+      var stem = "cherubim-" + kind + "-report-" + base + "-" + new Date().toISOString().slice(0, 10);
+      makePdf(html, stem + ".pdf", function (ok) {
+        if (ok) toast(label + " report ready", finds.length + " findings · PDF downloaded.", "ok");
+        else { downloadHtml(html, stem + ".html"); toast(label + " report ready", "Saved as HTML (open and print to PDF).", "ok"); }
+      });
     }).catch(function (err) { toast("Could not build report", String(err.message || err), "err"); });
+  }
+
+  function downloadHtml(html, filename) {
+    var blob = new Blob([html], { type: "text/html" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+
+  function makePdf(html, filename, done) {
+    if (typeof window.html2pdf === "undefined") { done(false); return; }
+    var ifr = document.createElement("iframe");
+    ifr.setAttribute("aria-hidden", "true");
+    ifr.style.cssText = "position:fixed;left:-9999px;top:0;width:830px;height:1200px;border:0;background:#fff";
+    document.body.appendChild(ifr);
+    var doc = ifr.contentDocument || ifr.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    var opt = {
+      margin: [8, 0, 12, 0], filename: filename,
+      image: { type: "jpeg", quality: 0.97 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", windowWidth: 830 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["css", "legacy"], avoid: [".finding", "section", "footer"] }
+    };
+    setTimeout(function () {
+      try {
+        window.html2pdf().set(opt).from(doc.body).save()
+          .then(function () { setTimeout(function () { ifr.remove(); }, 200); done(true); })
+          .catch(function () { ifr.remove(); done(false); });
+      } catch (e) { ifr.remove(); done(false); }
+    }, 400);
   }
 
   var RCOL = { critical: "#d92d20", high: "#e8710a", medium: "#caa000", low: "#2f6fd6", info: "#98a2b3" };
