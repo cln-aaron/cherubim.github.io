@@ -298,7 +298,14 @@
     else c.innerHTML = launcher();
     bind();
     scrollFeed();
-    $("#crumb").textContent = state.view === "scans" ? "/ scans" : state.view === "scheduled" ? "/ scheduled" : state.view === "current" ? "/ current scan" : "";
+    setChrome();
+  }
+  function setChrome() {
+    var curLbl = state.scan ? (state.done ? "scan detail" : "live scan") : "scan";
+    var cr = $("#crumb");
+    if (cr) cr.textContent = state.view === "scans" ? "/ scans" : state.view === "scheduled" ? "/ scheduled" : state.view === "current" ? "/ " + curLbl : "";
+    var h = $(".topbar h1");
+    if (h) h.textContent = state.view === "scans" ? "Scans" : state.view === "scheduled" ? "Scheduled" : state.view === "current" ? (state.scan ? (state.done ? "Scan detail" : "Live pentest") : "Scan") : "New scan";
   }
   function refreshDynamic() {
     if (state.view !== "current") return;
@@ -306,6 +313,7 @@
     var f = $("#findings"); if (f) f.outerHTML = findingsSection();
     bind();
     scrollFeed();
+    setChrome();
   }
 
   function bind() {
