@@ -269,3 +269,6 @@
 .rm-item:hover{background:rgba(255,255,255,.05)}
 .rm-item.danger{color:var(--accent-2)}
 .rm-item.danger:hover{background:rgba(252,43,50,.12)}
+
+/* completed-scan report buttons */
+.scan-actions-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}

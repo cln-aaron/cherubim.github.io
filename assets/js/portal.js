@@ -24,6 +24,7 @@
   var SEV_LABEL = { critical: "Critical", high: "High", medium: "Medium", low: "Low", info: "Info" };
   var SEV_COLOR = { critical: "#FC2B32", high: "#FF7A1A", medium: "#FFC400", low: "#3B9EFF", info: "#8A94A6" };
   var SEV_RANK = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+  function srank(sev) { var r = SEV_RANK[(sev || "info").toLowerCase()]; return r == null ? 9 : r; }
   var FREQ = { daily: "Daily", weekly: "Weekly", monthly: "Monthly" };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -164,7 +165,9 @@
       '<div class="eyebrow-min">' + (running ? '<span class="live-dot"></span> Live engagement' : 'Engagement complete') + '</div>' +
       '<div class="tgt">' + esc(sc.target) + '</div>' +
       '<div class="meta">' + esc(sc.mode || "single") + ' · ' + esc((sc.id || "").slice(0, 8)) + ' · <span id="cbElapsed">' + curElapsed() + '</span></div></div>' +
-      '<span class="stbadge ' + (state.done ? "ok" : "run") + '">' + esc(state.done ? "completed" : (sc.status || "running")) + '</span></div>' +
+      '<div class="scan-actions-top">' +
+      (state.done ? '<button class="b b-ghost b-sm" data-report="executive">Executive report</button><button class="b b-ghost b-sm" data-report="technical">Technical report</button>' : '') +
+      '<span class="stbadge ' + (state.done ? "ok" : "run") + '">' + esc(state.done ? "completed" : (sc.status || "running")) + '</span></div></div>' +
       '<div class="scan-body"><div class="scan-main">' +
       '<div class="phase-head"><span class="nm">Phase <b>' + ph + '</b> / 22 — ' + esc(PHASES[ph - 1] || "") + '</span><span class="pct">' + pct + '%</span></div>' +
       '<div class="pbar"><i style="width:' + pct + '%"></i></div>' +
@@ -192,7 +195,7 @@
   function findingsSection() {
     var list = state.filter === "all" ? state.findings : state.findings.filter(function (f) { return (f.severity || "info").toLowerCase() === state.filter; });
     list = list.slice().sort(function (a, b) {
-      var d = (SEV_RANK[(a.severity || "info").toLowerCase()] || 9) - (SEV_RANK[(b.severity || "info").toLowerCase()] || 9);
+      var d = srank(a.severity) - srank(b.severity);
       return d !== 0 ? d : (new Date(b.created_at) - new Date(a.created_at));
     });
     var counts = {}; state.findings.forEach(function (f) { var s = (f.severity || "info").toLowerCase(); counts[s] = (counts[s] || 0) + 1; });
@@ -311,6 +314,7 @@
     $$(".chip[data-filter]").forEach(function (c) { c.onclick = function () { state.filter = c.getAttribute("data-filter"); refreshDynamic(); }; });
     $$(".ftable tbody tr[data-scan]").forEach(function (r) { r.onclick = function () { openScan(r.getAttribute("data-scan")); }; });
     $$("[data-scanmenu]").forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); openRowMenu(b.getAttribute("data-scanmenu"), b); }; });
+    $$("[data-report]").forEach(function (b) { b.onclick = function () { if (state.scan) downloadReport(state.scan, b.getAttribute("data-report")); }; });
     var sf = $("#schedFormEl"); if (sf) sf.onsubmit = function (e) { e.preventDefault(); submitSchedule(); };
     $$("[data-delsched]").forEach(function (b) { b.onclick = function () { removeSchedule(b.getAttribute("data-delsched")); }; });
     try { var lt = localStorage.getItem("cb_last_target"), ti = $("#scanTarget"); if (lt && ti && !ti.value) ti.value = lt; } catch (e) {}
@@ -322,13 +326,15 @@
     var m = $("#rowMenu"); if (!m) return;
     var scan = state.scans.filter(function (s) { return s.id === id; })[0] || { id: id };
     m.innerHTML =
-      '<button class="rm-item" data-act="report">Download report</button>' +
+      '<button class="rm-item" data-act="exec">Executive report</button>' +
+      '<button class="rm-item" data-act="tech">Technical report</button>' +
       '<button class="rm-item danger" data-act="delete">Delete scan</button>';
     var r = btn.getBoundingClientRect();
     m.style.top = (r.bottom + 6) + "px";
-    m.style.left = Math.max(12, r.right - 168) + "px";
+    m.style.left = Math.max(12, r.right - 178) + "px";
     m.classList.add("open");
-    $(".rm-item[data-act='report']", m).onclick = function () { closeRowMenu(); downloadReport(scan); };
+    $(".rm-item[data-act='exec']", m).onclick = function () { closeRowMenu(); downloadReport(scan, "executive"); };
+    $(".rm-item[data-act='tech']", m).onclick = function () { closeRowMenu(); downloadReport(scan, "technical"); };
     $(".rm-item[data-act='delete']", m).onclick = function () { closeRowMenu(); doDeleteScan(scan); };
   }
 
@@ -342,54 +348,151 @@
     }).catch(function (err) { toast("Could not delete", String(err.message || err), "err"); });
   }
 
-  function downloadReport(scan) {
-    toast("Building report", "Compiling findings for " + scan.target + "…");
+  function downloadReport(scan, kind) {
+    var label = kind === "executive" ? "Executive" : "Technical";
+    toast("Building " + label.toLowerCase() + " report", "Compiling " + scan.target + "…");
     Promise.all([scanStatus(scan.id), listFindings(scan.id, 200)]).then(function (res) {
       var st = res[0].scan || scan, cn = res[0].counts || {}, finds = res[1].findings || [];
-      var html = buildReportHtml(st, cn, finds);
-      var name = "cherubim-report-" + String(st.target || "scan").replace(/^https?:\/\//, "").replace(/[^a-z0-9.-]+/gi, "-").replace(/^-+|-+$/g, "") + "-" + new Date().toISOString().slice(0, 10) + ".html";
+      var html = kind === "executive" ? buildExecutiveReport(st, cn, finds) : buildTechnicalReport(st, cn, finds);
+      var base = String(st.target || "scan").replace(/^https?:\/\//, "").replace(/[^a-z0-9.-]+/gi, "-").replace(/^-+|-+$/g, "");
+      var name = "cherubim-" + kind + "-report-" + base + "-" + new Date().toISOString().slice(0, 10) + ".html";
       var blob = new Blob([html], { type: "text/html" });
       var a = document.createElement("a");
       a.href = URL.createObjectURL(blob); a.download = name;
       document.body.appendChild(a); a.click();
       setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-      toast("Report ready", finds.length + " findings · open the file and print to PDF if needed.", "ok");
+      toast(label + " report ready", finds.length + " findings · open the file and print to PDF if needed.", "ok");
     }).catch(function (err) { toast("Could not build report", String(err.message || err), "err"); });
   }
 
-  function buildReportHtml(scan, counts, finds) {
+  var RCOL = { critical: "#d92d20", high: "#e8710a", medium: "#caa000", low: "#2f6fd6", info: "#98a2b3" };
+  function reportRating(counts) {
+    if (counts.critical) return ["Critical", "#d92d20"];
+    if (counts.high) return ["High", "#e8710a"];
+    if (counts.medium) return ["Medium", "#caa000"];
+    if (counts.low) return ["Low", "#2f6fd6"];
+    return ["Informational", "#98a2b3"];
+  }
+  function reportDonut(counts) {
+    var total = SEV.reduce(function (a, s) { return a + (counts[s] || 0); }, 0), r = 60, c = 2 * Math.PI * r, off = 0, arcs = "";
+    if (total > 0) SEV.forEach(function (s) {
+      var v = counts[s] || 0; if (!v) return; var len = c * (v / total);
+      arcs += '<circle cx="80" cy="80" r="' + r + '" fill="none" stroke="' + RCOL[s] + '" stroke-width="20" stroke-dasharray="' + len.toFixed(1) + ' ' + (c - len).toFixed(1) + '" stroke-dashoffset="' + (-off).toFixed(1) + '" transform="rotate(-90 80 80)"/>';
+      off += len;
+    });
+    return '<svg width="160" height="160" viewBox="0 0 160 160"><circle cx="80" cy="80" r="60" fill="none" stroke="#eceef1" stroke-width="20"/>' + arcs +
+      '<text x="80" y="76" text-anchor="middle" font-size="34" font-weight="700" fill="#1a1d23">' + total + '</text>' +
+      '<text x="80" y="98" text-anchor="middle" font-size="10" letter-spacing="1" fill="#667085">FINDINGS</text></svg>';
+  }
+  function reportBars(counts) {
+    var max = Math.max.apply(null, [1].concat(SEV.map(function (s) { return counts[s] || 0; })));
+    var bw = 40, gap = 12;
+    var bars = SEV.map(function (s, i) {
+      var v = counts[s] || 0, h = Math.round((v / max) * 118), bx = i * (bw + gap) + 8, by = 138 - h;
+      return '<rect x="' + bx + '" y="' + by + '" width="' + bw + '" height="' + Math.max(h, 2) + '" rx="4" fill="' + RCOL[s] + '"/>' +
+        '<text x="' + (bx + bw / 2) + '" y="' + (by - 6) + '" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1d23">' + v + '</text>' +
+        '<text x="' + (bx + bw / 2) + '" y="156" text-anchor="middle" font-size="9" fill="#667085">' + SEV_LABEL[s] + '</text>';
+    }).join("");
+    return '<svg width="266" height="164" viewBox="0 0 266 164">' + bars + '</svg>';
+  }
+  function brandMark() {
+    return '<div class="brand"><svg viewBox="0 0 48 48" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M23 13c-4.2-3.4-9.4-4.8-15-4 1.9 2.6 2.7 4.7 2.7 7.6m12.3-.6c-5.4-2.3-10.1-2.1-14.2.6 2 2.1 2.9 4.2 3 7.1m11.2-1.3c-4.4-.4-8.1.7-11.1 3.3 1.3 1.8 2 3.8 2.1 6.2"/>' +
+      '<path d="M25 13c4.2-3.4 9.4-4.8 15-4-1.9 2.6-2.7 4.7-2.7 7.6m-12.3-.6c5.4-2.3 10.1-2.1 14.2.6-2 2.1-2.9 4.2-3 7.1m-11.2-1.3c4.4-.4 8.1.7 11.1 3.3-1.3 1.8-2 3.8-2.1 6.2"/>' +
+      '<path d="M24 9.5c2.8 2.2 6 3.3 9.6 3.5.2 9.4-3.6 17.4-9.6 22.2-6-4.8-9.8-12.8-9.6-22.2 3.6-.2 6.8-1.3 9.6-3.5z"/>' +
+      '<path d="M24 16.5l1.7 4.8 4.8 1.7-4.8 1.7L24 29.5l-1.7-4.8-4.8-1.7 4.8-1.7z" fill="currentColor" stroke="none"/></svg>' +
+      '<div><b>Cherubim</b><span>by Hesed &amp; Emet Advisory</span></div></div>';
+  }
+  function reportHead(title, subtitle, scan) {
+    return '<header class="cover">' + brandMark() +
+      '<div class="classification">Confidential</div>' +
+      '<h1>' + title + '</h1><p class="lede">' + subtitle + '</p>' +
+      '<table class="meta"><tr><td>Target</td><td>' + esc(scan.target || "") + '</td></tr>' +
+      '<tr><td>Assessment type</td><td>' + (scan.mode === "wildcard" ? "Wildcard (domain-wide)" : "Single target") + '</td></tr>' +
+      '<tr><td>Report date</td><td>' + new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) + '</td></tr>' +
+      '<tr><td>Prepared by</td><td>Hesed &amp; Emet Advisory</td></tr></table></header>';
+  }
+  function reportFooter() {
+    return '<footer><span>Hesed &amp; Emet Advisory &middot; Confidential</span><span>Authorized security testing only</span></footer>';
+  }
+  function reportStyles() {
+    return '<style>*{box-sizing:border-box}body{font-family:"Segoe UI",-apple-system,Roboto,Helvetica,Arial,sans-serif;color:#1a1d23;margin:0;line-height:1.55;font-size:14px}' +
+      'main{max-width:820px;margin:0 auto;padding:0 40px 40px}' +
+      '.cover{max-width:820px;margin:0 auto;padding:52px 40px 34px;border-bottom:3px solid #d92d20}' +
+      '.brand{display:flex;align-items:center;gap:12px;color:#d92d20}.brand b{color:#1a1d23;font-size:18px;display:block;line-height:1.1}.brand span{color:#667085;font-size:12px}' +
+      '.classification{display:inline-block;margin-top:20px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#d92d20;border:1px solid #f0c0bc;background:#fdeceb;padding:4px 10px;border-radius:4px}' +
+      '.cover h1{font-size:32px;margin:16px 0 2px;letter-spacing:-.02em}.cover .lede{font-size:16px;color:#667085;margin:0 0 22px}' +
+      'table.meta{border-collapse:collapse;font-size:13px}table.meta td{padding:5px 0}table.meta td:first-child{color:#667085;width:150px}table.meta td:last-child{font-weight:600}' +
+      'h2{font-size:18px;margin:32px 0 12px;padding-bottom:8px;border-bottom:1px solid #e6e8ec}' +
+      'h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#98a2b3;margin:16px 0 6px}' +
+      'p{margin:0 0 12px}ul{margin:0 0 12px;padding-left:20px}li{margin-bottom:6px}' +
+      '.posture{display:flex;gap:30px;align-items:center;flex-wrap:wrap;margin:8px 0}' +
+      '.rating{border:2px solid;border-radius:10px;padding:16px 24px;text-align:center}.rating .rl{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#667085;margin-bottom:4px}.rating b{font-size:22px}' +
+      '.sev{font-size:10px;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:4px;color:#fff;white-space:nowrap}' +
+      '.sev.critical{background:#d92d20}.sev.high{background:#e8710a}.sev.medium{background:#caa000;color:#1a1d23}.sev.low{background:#2f6fd6}.sev.info{background:#98a2b3}' +
+      'table.kf,table.ftab,table.sevtab{border-collapse:collapse;width:100%;font-size:13px;margin:6px 0}' +
+      'table.kf th{text-align:left;color:#667085;font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e6e8ec;padding:8px 10px}' +
+      'table.kf td{border-bottom:1px solid #eef0f2;padding:9px 10px}table.kf td:last-child{font-family:ui-monospace,Menlo,monospace}' +
+      'table.ftab td{padding:4px 10px;border-bottom:1px solid #f0f2f4}table.ftab td:first-child{color:#667085;width:140px}' +
+      'table.sevtab{max-width:320px}table.sevtab td{padding:6px 10px;border-bottom:1px solid #f0f2f4}table.sevtab td.num{text-align:right;font-weight:700;width:60px;font-family:ui-monospace,Menlo,monospace}' +
+      '.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle}' +
+      '.dot.critical{background:#d92d20}.dot.high{background:#e8710a}.dot.medium{background:#caa000}.dot.low{background:#2f6fd6}.dot.info{background:#98a2b3}' +
+      '.finding{border:1px solid #e6e8ec;border-radius:8px;padding:18px 20px;margin:14px 0;page-break-inside:avoid}' +
+      '.finding .fh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.finding .fh h3{font-size:16px;margin:6px 0 0;flex:1 1 100%;order:3}' +
+      '.fid{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#667085}' +
+      'pre{background:#0f1115;color:#e6e8ec;padding:14px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,monospace}' +
+      '.none{color:#667085}' +
+      'footer{max-width:820px;margin:36px auto 0;padding:16px 40px;border-top:1px solid #e6e8ec;display:flex;justify-content:space-between;color:#98a2b3;font-size:11px}' +
+      '@media print{.cover{padding-top:16px}.finding{border-color:#d0d0d0}}</style>';
+  }
+
+  function buildExecutiveReport(scan, counts, finds) {
+    var rating = reportRating(counts);
+    var total = SEV.reduce(function (a, s) { return a + (counts[s] || 0); }, 0);
+    var crit = counts.critical || 0, high = counts.high || 0;
     var order = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
-    var sorted = finds.slice().sort(function (a, b) { return (order[(a.severity || "info").toLowerCase()] || 9) - (order[(b.severity || "info").toLowerCase()] || 9); });
-    var sevRow = SEV.map(function (s) { return '<span class="pill ' + s + '">' + SEV_LABEL[s] + ' ' + (counts[s] || 0) + '</span>'; }).join(" ");
-    var body = sorted.length ? sorted.map(function (f) {
+    var top = finds.slice().sort(function (a, b) { return srank(a.severity) - srank(b.severity); }).slice(0, 8);
+    var summary = total
+      ? "Hesed &amp; Emet Advisory conducted a penetration test of " + esc(scan.target || "the target") + ". The assessment identified " + total + " finding" + (total === 1 ? "" : "s") + ", including " + crit + " critical and " + high + " high severity. Every reported issue was confirmed by reproducing a working exploit, so each represents a demonstrated risk rather than a theoretical one."
+      : "Hesed &amp; Emet Advisory conducted a penetration test of " + esc(scan.target || "the target") + ". No exploitable issues were confirmed during this assessment.";
+    var kf = top.length
+      ? '<table class="kf"><thead><tr><th>Finding</th><th>Severity</th><th>CVSS</th></tr></thead><tbody>' + top.map(function (f) { var s = (f.severity || "info").toLowerCase(); return '<tr><td>' + esc(cleanTitle(f.title)) + '</td><td><span class="sev ' + s + '">' + SEV_LABEL[s] + '</span></td><td>' + (f.cvss != null ? f.cvss : "&mdash;") + '</td></tr>'; }).join("") + '</tbody></table>'
+      : '<p class="none">No findings to prioritise.</p>';
+    var recs = total
+      ? '<ul><li>Prioritise remediation of the ' + crit + ' critical and ' + high + ' high severity findings. These are confirmed and exploitable, and carry the greatest business risk.</li><li>Re-test the affected functionality once fixes are in place to confirm the exposure is closed.</li><li>Adopt a recurring testing cadence so new exposures are caught as the application changes.</li></ul>'
+      : '<ul><li>Maintain current controls and re-test periodically as the application evolves.</li></ul>';
+    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Executive summary &mdash; ' + esc(scan.target || "") + '</title>' + reportStyles() + '</head><body>' +
+      reportHead("Penetration Test", "Executive Summary", scan) +
+      '<main><section><h2>Overview</h2><p>' + summary + '</p></section>' +
+      '<section><h2>Risk posture</h2><div class="posture"><div class="rating" style="border-color:' + rating[1] + '"><span class="rl">Overall risk</span><b style="color:' + rating[1] + '">' + rating[0] + '</b></div><div>' + reportDonut(counts) + '</div><div>' + reportBars(counts) + '</div></div></section>' +
+      '<section><h2>Key findings</h2>' + kf + '</section>' +
+      '<section><h2>Recommendations</h2>' + recs + '</section></main>' +
+      reportFooter() + '</body></html>';
+  }
+
+  function buildTechnicalReport(scan, counts, finds) {
+    var order = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+    var sorted = finds.slice().sort(function (a, b) { return srank(a.severity) - srank(b.severity); });
+    var sevTable = '<table class="sevtab"><tbody>' + SEV.map(function (s) { return '<tr><td><span class="dot ' + s + '"></span>' + SEV_LABEL[s] + '</td><td class="num">' + (counts[s] || 0) + '</td></tr>'; }).join("") + '</tbody></table>';
+    var body = sorted.length ? sorted.map(function (f, i) {
       var s = (f.severity || "info").toLowerCase(), ev = f.evidence || {};
-      return '<section class="f"><div class="fh"><span class="sev ' + s + '">' + SEV_LABEL[s] + '</span>' +
-        '<h3>' + esc(cleanTitle(f.title)) + '</h3></div>' +
-        '<div class="tags">' + (f.cvss != null ? '<span>CVSS ' + esc(f.cvss) + '</span>' : "") + (ev.cwe_id ? '<span>' + esc(ev.cwe_id) + '</span>' : "") + (ev.owasp ? '<span>' + esc(ev.owasp) + '</span>' : "") + '<span>Phase ' + esc(f.phase || "?") + '</span></div>' +
-        '<h4>Evidence &amp; proof of concept</h4><pre>' + esc(f.description || "") + '</pre>' +
+      return '<section class="finding"><div class="fh"><span class="fid">F-' + String(i + 1).padStart(3, "0") + '</span><span class="sev ' + s + '">' + SEV_LABEL[s] + '</span><h3>' + esc(cleanTitle(f.title)) + '</h3></div>' +
+        '<table class="ftab"><tbody>' +
+        (f.cvss != null ? '<tr><td>CVSS</td><td>' + esc(f.cvss) + '</td></tr>' : "") +
+        (ev.cwe_id ? '<tr><td>Weakness</td><td>' + esc(ev.cwe_id) + '</td></tr>' : "") +
+        (ev.owasp ? '<tr><td>OWASP</td><td>' + esc(ev.owasp) + '</td></tr>' : "") +
+        '<tr><td>Affected target</td><td>' + esc(f.scan_target || scan.target || "") + '</td></tr>' +
+        '<tr><td>Status</td><td>Confirmed by exploitation</td></tr></tbody></table>' +
+        '<h4>Evidence &amp; proof of concept</h4><pre>' + esc(f.description || "No additional detail recorded.") + '</pre>' +
         (f.remediation || ev.fix ? '<h4>Remediation</h4><p>' + esc(f.remediation || ev.fix) + '</p>' : "") + '</section>';
-    }).join("") : '<p class="none">No findings were reproduced for this engagement.</p>';
-    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Cherubim report — ' + esc(scan.target || "") + '</title>' +
-      '<style>*{box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#15181d;max-width:840px;margin:0 auto;padding:48px 32px;line-height:1.55}' +
-      'h1{font-size:26px;margin:0 0 4px}.sub{color:#667085;font-family:ui-monospace,Menlo,monospace;font-size:13px}' +
-      '.summary{margin:22px 0 30px;padding:18px;border:1px solid #e6e8ec;border-radius:10px}' +
-      '.pill{display:inline-block;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;margin:3px 4px 3px 0;border:1px solid #e0e0e0}' +
-      '.pill.critical{background:#fdecec;color:#c0261d;border-color:#f4bcbc}.pill.high{background:#fff0e6;color:#c25a12;border-color:#f6cfae}' +
-      '.pill.medium{background:#fff8e1;color:#9a7400;border-color:#f0dda0}.pill.low{background:#eaf2fe;color:#245ec0;border-color:#c3d8f6}.pill.info{background:#f1f3f5;color:#555}' +
-      '.f{border-top:1px solid #e6e8ec;padding:22px 0}.fh{display:flex;align-items:center;gap:10px}.fh h3{font-size:17px;margin:0}' +
-      '.sev{font-size:11px;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:5px;color:#fff}' +
-      '.sev.critical{background:#e0342a}.sev.high{background:#e8720f}.sev.medium{background:#caa000;color:#1a1a1a}.sev.low{background:#2f6fd6}.sev.info{background:#8a94a6}' +
-      '.tags{margin:8px 0}.tags span{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#667085;border:1px solid #e6e8ec;border-radius:5px;padding:2px 7px;margin-right:6px}' +
-      'h4{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#98a2b3;margin:16px 0 6px}' +
-      'pre{background:#0c0e12;color:#e6e8ec;padding:14px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap;word-break:break-word}' +
-      '.none{color:#667085}footer{margin-top:40px;border-top:1px solid #e6e8ec;padding-top:16px;color:#98a2b3;font-size:12px}' +
-      '@media print{body{padding:0}}</style></head><body>' +
-      '<h1>Cherubim penetration test report</h1>' +
-      '<div class="sub">' + esc(scan.target || "") + ' · ' + esc(scan.mode || "single") + ' · ' + (scan.status || "") + ' · generated ' + new Date().toLocaleString() + '</div>' +
-      '<div class="summary"><b>Severity summary</b><div style="margin-top:10px">' + sevRow + '</div></div>' +
-      '<h2 style="font-size:18px">Findings</h2>' + body +
-      '<footer>Cherubim by Hesed &amp; Emet · exploit-validated findings · authorized security testing only</footer>' +
-      '</body></html>';
+    }).join("") : '<p class="none">No exploitable findings were confirmed during this assessment.</p>';
+    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Technical report &mdash; ' + esc(scan.target || "") + '</title>' + reportStyles() + '</head><body>' +
+      reportHead("Penetration Test", "Technical Report", scan) +
+      '<main><section><h2>Scope</h2><p>This report covers a penetration test of ' + esc(scan.target || "the target") + ', conducted as a ' + (scan.mode === "wildcard" ? "domain-wide (wildcard)" : "single target") + ' assessment. Findings are listed in order of severity, and each was confirmed by reproducing a working exploit against the target.</p></section>' +
+      '<section><h2>Methodology</h2><p>The assessment followed a structured methodology across six stages: reconnaissance and surface mapping; identity and access control; injection; application logic and APIs; information exposure and infrastructure; and exploit validation. A candidate issue was reported only after a working exploit was reproduced in a controlled manner, using non-destructive techniques.</p></section>' +
+      '<section><h2>Severity summary</h2>' + sevTable + '</section>' +
+      '<section><h2>Findings</h2>' + body + '</section></main>' +
+      reportFooter() + '</body></html>';
   }
 
   /* ---------- finding drawer ---------- */
