@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="../assets/css/styles.css?v=7" />
-<link rel="stylesheet" href="../assets/css/app.css?v=7" />
+<link rel="stylesheet" href="../assets/css/styles.css?v=8" />
+<link rel="stylesheet" href="../assets/css/app.css?v=8" />
 </head>
 <body>
 <div class="app">
@@ -59,7 +59,10 @@
       <h1>Live pentest</h1>
       <span class="crumb" id="crumb"></span>
       <div class="spacer"></div>
-      <span class="pill"><span class="g"></span> Engine online</span>
+      <span class="status-stack">
+        <span class="pill"><span class="g"></span> Cherubim online</span>
+        <span class="status-loc">Server location · AP-Singapore</span>
+      </span>
     </header>
 
     <div class="content" id="content"></div>
@@ -74,12 +77,12 @@
 <div class="load-overlay" id="loadOverlay">
   <div class="load-box">
     <div class="spinner"></div>
-    <b>Starting engagement…</b>
-    <span>Provisioning the run and kicking off phase 1</span>
+    <b>Working…</b>
+    <span>Loading engagement data</span>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js" defer></script>
-<script src="../assets/js/portal.js?v=7"></script>
+<script src="../assets/js/portal.js?v=8"></script>
 </body>
 </html>

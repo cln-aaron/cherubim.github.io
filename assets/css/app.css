@@ -34,6 +34,8 @@
 .pill{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
   border:1px solid var(--line);border-radius:20px;padding:5px 11px;display:inline-flex;align-items:center;gap:7px}
 .pill .g{width:6px;height:6px;border-radius:50%;background:#2ec16f;box-shadow:0 0 8px #2ec16f}
+.status-stack{display:flex;flex-direction:column;align-items:flex-end;gap:3px;line-height:1}
+.status-loc{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
 .spacer{flex:1}
 .content{padding:26px;max-width:1180px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:20px}
 
