@@ -364,10 +364,10 @@
       var html = kind === "executive" ? buildExecutiveReport(st, cn, finds) : buildTechnicalReport(st, cn, finds);
       var base = String(st.target || "scan").replace(/^https?:\/\//, "").replace(/[^a-z0-9.-]+/gi, "-").replace(/^-+|-+$/g, "");
       var stem = "cherubim-" + kind + "-report-" + base + "-" + new Date().toISOString().slice(0, 10);
-      makePdf(html, stem + ".pdf", function (ok) {
-        if (ok) toast(label + " report ready", finds.length + " findings · PDF downloaded.", "ok");
+      makePdf(stem + ".pdf", function (ok) {
+        if (ok) toast(label + " report ready", finds.length + " findings · choose “Save as PDF” in the dialog.", "ok");
         else { downloadHtml(html, stem + ".html"); toast(label + " report ready", "Saved as HTML (open and print to PDF).", "ok"); }
-      });
+      }).print(html);
     }).catch(function (err) { toast("Could not build report", String(err.message || err), "err"); });
   }
 
@@ -379,28 +379,34 @@
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   }
 
-  function makePdf(html, filename, done) {
-    if (typeof window.html2pdf === "undefined") { done(false); return; }
+  // Produce the PDF with the browser's own print engine: vector text, faithful
+  // CSS (flex, pills, colour), and clean page breaks that never slice a row or
+  // a finding. The report's <title> becomes the suggested "Save as PDF" name.
+  function makePdf(filename, done) {
+    var title = filename.replace(/\.pdf$/i, "");
     var ifr = document.createElement("iframe");
     ifr.setAttribute("aria-hidden", "true");
-    ifr.style.cssText = "position:fixed;left:-9999px;top:0;width:830px;height:1200px;border:0;background:#fff";
-    document.body.appendChild(ifr);
-    var doc = ifr.contentDocument || ifr.contentWindow.document;
-    doc.open(); doc.write(html); doc.close();
-    var opt = {
-      margin: [8, 0, 12, 0], filename: filename,
-      image: { type: "jpeg", quality: 0.97 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", windowWidth: 830 },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["css", "legacy"], avoid: [".finding", "section", "footer"] }
+    ifr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0";
+    return {
+      print: function (html) {
+        html = html.replace(/<title>[^<]*<\/title>/i, "<title>" + esc(title) + "</title>");
+        document.body.appendChild(ifr);
+        var doc = ifr.contentDocument || ifr.contentWindow.document;
+        doc.open(); doc.write(html); doc.close();
+        var win = ifr.contentWindow, fired = false;
+        var cleanup = function () { setTimeout(function () { if (ifr.parentNode) ifr.remove(); }, 1500); };
+        var go = function () {
+          if (fired) return; fired = true;
+          try {
+            win.onafterprint = cleanup;
+            win.focus(); win.print();
+            done(true); cleanup();
+          } catch (e) { ifr.remove(); done(false); }
+        };
+        if (win) win.onload = function () { setTimeout(go, 300); };
+        setTimeout(go, 1200);
+      }
     };
-    setTimeout(function () {
-      try {
-        window.html2pdf().set(opt).from(doc.body).save()
-          .then(function () { setTimeout(function () { ifr.remove(); }, 200); done(true); })
-          .catch(function () { ifr.remove(); done(false); });
-      } catch (e) { ifr.remove(); done(false); }
-    }, 400);
   }
 
   var RCOL = { critical: "#d92d20", high: "#e8710a", medium: "#caa000", low: "#2f6fd6", info: "#98a2b3" };
@@ -454,34 +460,40 @@
     return '<footer><span>Hesed &amp; Emet Advisory &middot; Confidential</span><span>Authorized security testing only</span></footer>';
   }
   function reportStyles() {
-    return '<style>*{box-sizing:border-box}body{font-family:"Segoe UI",-apple-system,Roboto,Helvetica,Arial,sans-serif;color:#1a1d23;margin:0;line-height:1.55;font-size:14px}' +
-      'main{max-width:820px;margin:0 auto;padding:0 40px 40px}' +
-      '.cover{max-width:820px;margin:0 auto;padding:52px 40px 34px;border-bottom:3px solid #d92d20}' +
+    return '<style>' +
+      '@page{size:A4;margin:14mm 13mm}' +
+      '*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}' +
+      'body{font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;color:#1a1d23;line-height:1.55;font-size:13px;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      '.report{width:100%}main{padding:0}' +
+      '.cover{padding:4px 0 24px;border-bottom:3px solid #d92d20}' +
       '.brand{display:flex;align-items:center;gap:12px;color:#d92d20}.brand b{color:#1a1d23;font-size:18px;display:block;line-height:1.1}.brand span{color:#667085;font-size:12px}' +
-      '.classification{display:inline-block;margin-top:20px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#d92d20;border:1px solid #f0c0bc;background:#fdeceb;padding:4px 10px;border-radius:4px}' +
-      '.cover h1{font-size:32px;margin:16px 0 2px;letter-spacing:-.02em}.cover .lede{font-size:16px;color:#667085;margin:0 0 22px}' +
-      'table.meta{border-collapse:collapse;font-size:13px}table.meta td{padding:5px 0}table.meta td:first-child{color:#667085;width:150px}table.meta td:last-child{font-weight:600}' +
-      'h2{font-size:18px;margin:32px 0 12px;padding-bottom:8px;border-bottom:1px solid #e6e8ec}' +
-      'h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#98a2b3;margin:16px 0 6px}' +
-      'p{margin:0 0 12px}ul{margin:0 0 12px;padding-left:20px}li{margin-bottom:6px}' +
-      '.posture{display:flex;gap:30px;align-items:center;flex-wrap:wrap;margin:8px 0}' +
-      '.rating{border:2px solid;border-radius:10px;padding:16px 24px;text-align:center}.rating .rl{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#667085;margin-bottom:4px}.rating b{font-size:22px}' +
-      '.sev{font-size:10px;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:4px;color:#fff;white-space:nowrap}' +
+      '.classification{display:inline-block;margin-top:24px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#d92d20;border:1px solid #f0c0bc;background:#fdeceb;padding:4px 10px;border-radius:4px}' +
+      '.cover h1{font-size:30px;margin:16px 0 2px;letter-spacing:-.02em}.cover .lede{font-size:15px;color:#667085;margin:0 0 24px}' +
+      'table.meta{border-collapse:collapse;font-size:12.5px;margin-top:6px}table.meta td{padding:5px 0}table.meta td:first-child{color:#667085;width:150px}table.meta td:last-child{font-weight:600}' +
+      'section{margin:0 0 4px}' +
+      'h2{font-size:16px;margin:22px 0 10px;padding-bottom:8px;border-bottom:1px solid #e6e8ec;page-break-after:avoid;break-after:avoid}' +
+      'h3{page-break-after:avoid;break-after:avoid}' +
+      'h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#98a2b3;margin:14px 0 6px}' +
+      'p{margin:0 0 11px}ul{margin:0 0 12px;padding-left:20px}li{margin-bottom:6px}' +
+      '.posture{display:flex;gap:26px;align-items:center;flex-wrap:wrap;margin:10px 0;page-break-inside:avoid;break-inside:avoid}' +
+      '.rating{border:2px solid;border-radius:10px;padding:14px 22px;text-align:center}.rating .rl{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#667085;margin-bottom:4px}.rating b{font-size:22px}' +
+      '.sev{font-size:9.5px;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:4px;color:#fff;white-space:nowrap;display:inline-block}' +
       '.sev.critical{background:#d92d20}.sev.high{background:#e8710a}.sev.medium{background:#caa000;color:#1a1d23}.sev.low{background:#2f6fd6}.sev.info{background:#98a2b3}' +
-      'table.kf,table.ftab,table.sevtab{border-collapse:collapse;width:100%;font-size:13px;margin:6px 0}' +
-      'table.kf th{text-align:left;color:#667085;font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e6e8ec;padding:8px 10px}' +
-      'table.kf td{border-bottom:1px solid #eef0f2;padding:9px 10px}table.kf td:last-child{font-family:ui-monospace,Menlo,monospace}' +
-      'table.ftab td{padding:4px 10px;border-bottom:1px solid #f0f2f4}table.ftab td:first-child{color:#667085;width:140px}' +
+      'table.kf,table.ftab,table.sevtab{border-collapse:collapse;width:100%;font-size:12.5px;margin:6px 0}' +
+      'table.kf{page-break-inside:auto}table.kf th{text-align:left;color:#667085;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e6e8ec;padding:8px 10px}' +
+      'table.kf td{border-bottom:1px solid #eef0f2;padding:9px 10px}table.kf tr{page-break-inside:avoid;break-inside:avoid}table.kf th:last-child,table.kf td:last-child{text-align:right;width:64px;font-family:ui-monospace,Menlo,monospace}table.kf th:nth-child(2),table.kf td:nth-child(2){width:96px}' +
+      'table.ftab{margin:2px 0 4px}table.ftab td{padding:4px 10px;border-bottom:1px solid #f0f2f4;vertical-align:top}table.ftab td:first-child{color:#667085;width:150px;white-space:nowrap}' +
       'table.sevtab{max-width:320px}table.sevtab td{padding:6px 10px;border-bottom:1px solid #f0f2f4}table.sevtab td.num{text-align:right;font-weight:700;width:60px;font-family:ui-monospace,Menlo,monospace}' +
       '.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle}' +
       '.dot.critical{background:#d92d20}.dot.high{background:#e8710a}.dot.medium{background:#caa000}.dot.low{background:#2f6fd6}.dot.info{background:#98a2b3}' +
-      '.finding{border:1px solid #e6e8ec;border-radius:8px;padding:18px 20px;margin:14px 0;page-break-inside:avoid}' +
-      '.finding .fh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.finding .fh h3{font-size:16px;margin:6px 0 0;flex:1 1 100%;order:3}' +
-      '.fid{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#667085}' +
-      'pre{background:#0f1115;color:#e6e8ec;padding:14px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,monospace}' +
+      '.finding{border:1px solid #e6e8ec;border-radius:8px;padding:15px 18px;margin:12px 0;page-break-inside:avoid;break-inside:avoid}' +
+      '.finding .fh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.finding .fh h3{font-size:15px;margin:8px 0 0;flex:1 1 100%;order:3}' +
+      '.fid{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#667085}' +
+      'pre{background:#0f1115;color:#e6e8ec;padding:13px 14px;border-radius:8px;font-size:11.5px;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,monospace;page-break-inside:avoid;break-inside:avoid}' +
       '.none{color:#667085}' +
-      'footer{max-width:820px;margin:36px auto 0;padding:16px 40px;border-top:1px solid #e6e8ec;display:flex;justify-content:space-between;color:#98a2b3;font-size:11px}' +
-      '@media print{.cover{padding-top:16px}.finding{border-color:#d0d0d0}}</style>';
+      'footer{margin-top:28px;padding:14px 0 0;border-top:1px solid #e6e8ec;display:flex;justify-content:space-between;gap:16px;color:#98a2b3;font-size:10.5px}' +
+      '@media print{tr,.finding,.posture,.kf,.sevtab,pre,.rating{page-break-inside:avoid;break-inside:avoid}h2,h3,h4{page-break-after:avoid;break-after:avoid}}' +
+      '</style>';
   }
 
   function buildExecutiveReport(scan, counts, finds) {
